@@ -34,6 +34,17 @@ const api: StudioApi = {
       return () => ipcRenderer.removeListener(IPC.libChanged, listener)
     }
   },
+  share: {
+    startPhone: (ids) => ipcRenderer.invoke(IPC.shareStartPhone, ids),
+    stopPhone: () => ipcRenderer.invoke(IPC.shareStopPhone),
+    onDownloaded: (cb) => {
+      const listener = (_e: Electron.IpcRendererEvent, id: string) => cb(id)
+      ipcRenderer.on(IPC.shareDownloaded, listener)
+      return () => ipcRenderer.removeListener(IPC.shareDownloaded, listener)
+    },
+    listUsb: () => ipcRenderer.invoke(IPC.usbList),
+    copyToUsb: (ids, drive) => ipcRenderer.invoke(IPC.usbCopy, ids, drive)
+  },
   youtube: {
     show: (bounds) => ipcRenderer.invoke(IPC.ytShow, bounds),
     setBounds: (bounds) => ipcRenderer.invoke(IPC.ytBounds, bounds),

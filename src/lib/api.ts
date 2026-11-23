@@ -63,6 +63,21 @@ const browserMock: StudioApi = {
       return () => {}
     }
   },
+  share: {
+    async startPhone() {
+      throw new Error('Anteprima nel browser')
+    },
+    async stopPhone() {},
+    onDownloaded() {
+      return () => {}
+    },
+    async listUsb() {
+      return []
+    },
+    async copyToUsb() {
+      return 0
+    }
+  },
   youtube: {
     async show() {},
     async setBounds() {},

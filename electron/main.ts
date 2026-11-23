@@ -10,6 +10,7 @@ import { IPC, THEMES, type AppInfo, type ThemeId } from './ipc-types'
 import { settings } from './settings'
 import { setupYouTube } from './youtube'
 import { Library, defaultRoot } from './library'
+import { copyToUsb, listUsbDrives, startPhoneShare, stopPhoneShare } from './share'
 
 // __dirname è fornito da electron-vite anche nel bundle ESM
 
@@ -222,6 +223,17 @@ function registerIpc(): void {
   ipcMain.handle(IPC.libFavorite, async (_e, id: string, fav: boolean) => (await lib()).setFavorite(id, fav))
   ipcMain.handle(IPC.libRemove, async (_e, id: string) => (await lib()).remove(id))
   ipcMain.handle(IPC.libRestore, async (_e, id: string) => (await lib()).restore(id))
+  // Condivisione: telefono (Wi‑Fi di casa) e chiavetta USB
+  ipcMain.handle(IPC.shareStartPhone, async (_e, ids: string[]) =>
+    startPhoneShare((await lib()).filesFor(ids), (id) => mainWindow?.webContents.send(IPC.shareDownloaded, id))
+  )
+  ipcMain.handle(IPC.shareStopPhone, () => stopPhoneShare())
+  ipcMain.handle(IPC.usbList, () => listUsbDrives())
+  ipcMain.handle(IPC.usbCopy, async (_e, ids: string[], drive: string) => {
+    const n = await copyToUsb((await lib()).filesFor(ids), drive)
+    log(`copiate ${n} canzoni su ${drive}`)
+    return n
+  })
   ipcMain.handle(IPC.libReadAudio, async (_e, id: string) => {
     const buf = await (await lib()).readAudio(id)
     return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength)
@@ -261,6 +273,10 @@ app.on('child-process-gone', (_event, details) => {
 process.on('uncaughtException', (err) => {
   log('errore non gestito:', err)
   if (app.isPackaged) relaunch()
+})
+
+app.on('before-quit', () => {
+  void stopPhoneShare()
 })
 
 app.on('window-all-closed', () => {

@@ -161,6 +161,11 @@ export class Library {
     return r
   }
 
+  /** Record e percorso dei file (per condividerli) */
+  filesFor(ids: string[]): { rec: Recording; path: string }[] {
+    return ids.map((id) => this.find(id)).map((rec) => ({ rec, path: this.filePath(rec) }))
+  }
+
   async readAudio(id: string): Promise<Buffer> {
     return readFile(this.filePath(this.find(id)))
   }

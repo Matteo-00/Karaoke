@@ -57,6 +57,10 @@ body {
   box-shadow: var(--focus-ring);
   z-index: 1;
 }
+/* Righe larghe delle liste: ingrandimento minimo, così non escono dai bordi */
+[data-nav][data-nav-row]:focus {
+  transform: scale(1.012);
+}
 /* Contenitori che ricevono il focus senza mostrarlo (es. il player) */
 [data-nav][data-nav-plain]:focus {
   transform: none;

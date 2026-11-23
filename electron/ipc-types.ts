@@ -89,6 +89,7 @@ export interface StudioApi {
   youtube: YouTubeApi
   recorder: RecorderApi
   library: LibraryApi
+  share: ShareApi
   /** Etichetta (parziale) del dispositivo audio del mixer */
   mixerHint(): Promise<string>
 }
@@ -125,7 +126,12 @@ export const IPC = {
   libRemove: 'lib:remove',
   libRestore: 'lib:restore',
   libReadAudio: 'lib:read-audio',
-  libChanged: 'lib:changed'
+  libChanged: 'lib:changed',
+  shareStartPhone: 'share:start-phone',
+  shareStopPhone: 'share:stop-phone',
+  shareDownloaded: 'share:downloaded',
+  usbList: 'share:usb-list',
+  usbCopy: 'share:usb-copy'
 } as const
 
 // ======================================================= registrazioni
@@ -204,4 +210,32 @@ export interface LibraryApi {
   readAudio(id: string): Promise<ArrayBuffer>
   /** Avvisa quando l'archivio cambia */
   onChanged(cb: () => void): () => void
+}
+
+// ======================================================= condivisione
+
+export interface PhoneShare {
+  /** Indirizzo da aprire sul telefono */
+  url: string
+  /** QR code (immagine data:) con l'indirizzo */
+  qr: string
+  expiresAt: string
+}
+
+export interface UsbDrive {
+  /** Percorso della chiavetta (es. "E:\\") */
+  path: string
+  label: string
+  freeBytes: number
+}
+
+export interface ShareApi {
+  /** Avvia la condivisione sul telefono (Wi‑Fi di casa) */
+  startPhone(ids: string[]): Promise<PhoneShare>
+  stopPhone(): Promise<void>
+  /** Avvisa quando il telefono ha scaricato una canzone */
+  onDownloaded(cb: (id: string) => void): () => void
+  listUsb(): Promise<UsbDrive[]>
+  /** Copia sulla chiavetta; restituisce quante canzoni */
+  copyToUsb(ids: string[], drivePath: string): Promise<number>
 }

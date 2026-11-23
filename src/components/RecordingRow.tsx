@@ -1,4 +1,4 @@
-import { Folder, Music2, Star } from 'lucide-react'
+import { Check, Folder, Music2, Star } from 'lucide-react'
 import type { Recording } from '../../electron/ipc-types'
 import { dateTime, duration } from '../lib/text'
 
@@ -8,25 +8,38 @@ interface Props {
   showFolder: boolean
   /** Nelle eliminate: giorni rimasti */
   daysLeft?: number
+  /** Modalità selezione: undefined = non attiva */
+  selected?: boolean
   onOpen: () => void
 }
 
 /** Riga grande della lista: nome, cartella, data e ora, durata, ⭐ */
-export function RecordingRow({ recording: r, showFolder, daysLeft, onOpen }: Props) {
+export function RecordingRow({ recording: r, showFolder, daysLeft, selected, onOpen }: Props) {
   return (
     <button
       type="button"
       data-nav=""
-      data-nav-compact=""
+      data-nav-row=""
       onClick={onOpen}
-      className="t-surface flex min-h-[6rem] w-full items-center gap-5 rounded-[1.3rem] border-2 px-5 text-left"
+      aria-pressed={selected}
+      className={`flex min-h-[6rem] w-full items-center gap-5 rounded-[1.3rem] border-2 px-5 text-left ${selected ? 't-card2' : 't-surface'}`}
     >
-      <span className={`flex size-[3.6rem] shrink-0 items-center justify-center rounded-full ${r.favorite ? 'bg-[#ffd166] text-[#7a5200]' : 't-btn-neutral'}`}>
-        {r.favorite ? <Star className="size-[1.9rem] fill-current" /> : <Music2 className="size-[1.9rem]" />}
-      </span>
+      {selected !== undefined ? (
+        <span
+          className={`flex size-[3.6rem] shrink-0 items-center justify-center rounded-[0.9rem] border-[0.25rem] ${
+            selected ? 'border-white bg-white text-[#2fa294]' : 'border-current opacity-60'
+          }`}
+        >
+          {selected && <Check className="size-[2.2rem]" strokeWidth={4} />}
+        </span>
+      ) : (
+        <span className={`flex size-[3.6rem] shrink-0 items-center justify-center rounded-full ${r.favorite ? 'bg-[#ffd166] text-[#7a5200]' : 't-btn-neutral'}`}>
+          {r.favorite ? <Star className="size-[1.9rem] fill-current" /> : <Music2 className="size-[1.9rem]" />}
+        </span>
+      )}
       <span className="flex min-w-0 flex-1 flex-col gap-1">
         <span className="truncate text-[1.7rem] leading-tight font-black">{r.title}</span>
-        <span className="t-muted flex items-center gap-3 truncate text-[1.25rem] font-bold">
+        <span className={`flex items-center gap-3 truncate text-[1.25rem] font-bold ${selected ? 'opacity-85' : 't-muted'}`}>
           {daysLeft !== undefined ? (
             <>
               <span>da «{r.originalFolder ?? 'Generale'}»</span>·

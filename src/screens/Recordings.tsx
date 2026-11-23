@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   CalendarDays,
+  CheckSquare,
+  ListChecks,
+  Share2,
+  Square,
+  X,
   Disc3,
   Folder,
   FolderInput,
@@ -27,6 +32,7 @@ import { OnScreenKeyboard } from '../components/OnScreenKeyboard'
 import { FolderPicker } from '../components/FolderPicker'
 import { OptionsDialog } from '../components/OptionsDialog'
 import { Player } from '../components/Player'
+import { ShareDialog } from '../components/ShareDialog'
 import { useToast } from '../components/Toast'
 import { useBackHandler } from '../navigation/RemoteKeys'
 import { useLibrary } from '../hooks/useLibrary'
@@ -62,6 +68,7 @@ type Modal =
   | { t: 'newFolder'; moveRec?: Recording }
   | { t: 'renameFolder'; folder: string }
   | { t: 'deleteFolder'; folder: string; count: number }
+  | { t: 'share'; recs: Recording[] }
 
 /** Vista iniziale ricordata durante la sessione */
 let lastView: View = { kind: 'all' }
@@ -74,10 +81,24 @@ export function Recordings({ onHome, onOpenYouTube }: { onHome: () => void; onOp
   const [filters, setFiltersState] = useState<Filters>(() => recallFilters(lastView))
   const [modal, setModal] = useState<Modal | null>(null)
   const [draft, setDraft] = useState('')
+  /** Modalità "seleziona più canzoni" (per condividerle) */
+  const [selecting, setSelecting] = useState(false)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
 
   useBackHandler(() => {
-    onHome()
+    if (selecting) {
+      setSelecting(false)
+      setSelected(new Set())
+    } else onHome()
   })
+
+  const toggle = (id: string) =>
+    setSelected((s) => {
+      const n = new Set(s)
+      if (n.has(id)) n.delete(id)
+      else n.add(id)
+      return n
+    })
 
   // Se la cartella aperta non esiste più (rinominata o eliminata) torniamo a "Tutte"
   useEffect(() => {
@@ -86,6 +107,8 @@ export function Recordings({ onHome, onOpenYouTube }: { onHome: () => void; onOp
   }, [lib.folders, lib.loaded])
 
   const setView = (v: View) => {
+    setSelecting(false)
+    setSelected(new Set())
     lastView = v
     setViewState(v)
     setFiltersState(recallFilters(v))
@@ -173,7 +196,12 @@ export function Recordings({ onHome, onOpenYouTube }: { onHome: () => void; onOp
         <section className="flex min-w-0 flex-1 flex-col gap-4 px-6 pt-5">
           <div className="flex items-center gap-4">
             <h2 className="min-w-0 flex-1 truncate text-[2.3rem] font-black">{viewTitle}</h2>
-            {isUserFolder && view.kind === 'folder' && (
+            {!isTrash && !selecting && base.length > 0 && (
+              <Button size="md" variant="neutral" icon={<ListChecks />} onClick={() => setSelecting(true)}>
+                Seleziona
+              </Button>
+            )}
+            {isUserFolder && view.kind === 'folder' && !selecting && (
               <>
                 <Button
                   size="md"
@@ -201,6 +229,38 @@ export function Recordings({ onHome, onOpenYouTube }: { onHome: () => void; onOp
           {isTrash ? (
             <div className="t-warn rounded-[1.1rem] border-2 px-5 py-3 text-[1.45rem] font-extrabold">
               Le registrazioni qui vengono cancellate per sempre dopo 14 giorni.
+            </div>
+          ) : selecting ? (
+            <div className="t-surface flex items-center gap-3 rounded-[1.3rem] border-2 px-4 py-3">
+              <span className="min-w-0 flex-1 truncate text-[1.6rem] font-black">
+                {selected.size === 0 ? 'Scegli' : selected.size === 1 ? '1 scelta' : `${selected.size} scelte`}
+              </span>
+              <Button size="md" variant="neutral" icon={<CheckSquare />} onClick={() => setSelected(new Set(list.map((r) => r.id)))}>
+                Tutte
+              </Button>
+              <Button size="md" variant="neutral" icon={<Square />} onClick={() => setSelected(new Set())}>
+                Nessuna
+              </Button>
+              <Button
+                size="md"
+                variant="accent"
+                icon={<Share2 />}
+                disabled={selected.size === 0}
+                onClick={() => setModal({ t: 'share', recs: lib.recordings.filter((r) => selected.has(r.id)) })}
+              >
+                Condividi
+              </Button>
+              <Button
+                size="md"
+                variant="ghost"
+                icon={<X />}
+                onClick={() => {
+                  setSelecting(false)
+                  setSelected(new Set())
+                }}
+              >
+                Fine
+              </Button>
             </div>
           ) : (
             base.length > 0 && (
@@ -232,7 +292,7 @@ export function Recordings({ onHome, onOpenYouTube }: { onHome: () => void; onOp
           )}
 
           {/* Lista */}
-          <div className="-mx-3 min-h-0 flex-1 overflow-y-auto px-3 pt-1 pb-6">
+          <div className="-mx-4 min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pt-2 pb-6">
             {list.length > 0 ? (
               <div className="flex flex-col gap-3">
                 {list.map((r) => (
@@ -241,7 +301,10 @@ export function Recordings({ onHome, onOpenYouTube }: { onHome: () => void; onOp
                     recording={r}
                     showFolder={isGlobal}
                     daysLeft={isTrash ? daysLeft(r) : undefined}
-                    onOpen={() => setModal(isTrash ? { t: 'trashActions', rec: r } : { t: 'actions', rec: r })}
+                    selected={selecting ? selected.has(r.id) : undefined}
+                    onOpen={() =>
+                      selecting ? toggle(r.id) : setModal(isTrash ? { t: 'trashActions', rec: r } : { t: 'actions', rec: r })
+                    }
                   />
                 ))}
               </div>
@@ -306,6 +369,9 @@ export function Recordings({ onHome, onOpenYouTube }: { onHome: () => void; onOp
             <Button variant="neutral" icon={<FolderInput />} onClick={() => setModal({ t: 'move', rec: modal.rec })}>
               Sposta
             </Button>
+            <Button variant="neutral" icon={<Share2 />} onClick={() => setModal({ t: 'share', recs: [modal.rec] })}>
+              Condividi
+            </Button>
             <Button variant="ghost" icon={<Trash2 />} onClick={() => setModal({ t: 'delete', rec: modal.rec })}>
               Elimina
             </Button>
@@ -314,6 +380,17 @@ export function Recordings({ onHome, onOpenYouTube }: { onHome: () => void; onOp
             </Button>
           </div>
         </Dialog>
+      )}
+
+      {modal?.t === 'share' && (
+        <ShareDialog
+          recordings={modal.recs}
+          onClose={() => {
+            setModal(null)
+            setSelecting(false)
+            setSelected(new Set())
+          }}
+        />
       )}
 
       {modal?.t === 'player' && <Player recording={modal.rec} onClose={() => setModal(null)} />}

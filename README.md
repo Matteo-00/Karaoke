@@ -112,6 +112,30 @@ library.json             ← indice, ricostruito dal disco a ogni avvio
 | ![](docs/screenshots/fase3-5/01-registrazione.png) | ![](docs/screenshots/fase3-5/06-tutte.png) |
 | ![](docs/screenshots/fase3-5/03-nome.png) | ![](docs/screenshots/fase3-5/10-player.png) |
 
+### Dove sono i file
+
+Le canzoni sono normali file MP3 sul disco del mini PC, in `Documenti\Studio Karaoke\Registrazioni\<cartella>\`. Si possono aprire, copiare o salvare come qualsiasi altro file, anche con Esplora risorse.
+
+### Condividere le canzoni
+
+In "Le mie registrazioni": **Seleziona** → scegli le canzoni → **Condividi** (oppure **Condividi** sulla singola canzone).
+
+- **Sul telefono, senza fili.** Sulla TV compare un QR code: si inquadra con la fotocamera del telefono, collegato allo stesso Wi‑Fi del mini PC, e si tocca «Scarica». Il link vale 20 minuti e smette di funzionare quando si chiude la finestra. La prima volta Windows chiede il permesso del firewall: scegli **Reti private** e premi **Consenti**.
+- **Su una chiavetta USB.** Si inserisce la chiavetta e l'app la vede da sola: le canzoni vanno nella cartella `Studio Karaoke`, divise per cartella. Le canzoni già copiate non vengono duplicate.
+- **Telefono via cavo (per te, non per il papà).** Collega il telefono Android, scegli «Trasferimento file» sul telefono e trascina i file dalla cartella sopra in Esplora risorse. Con un iPhone usa il QR code, è più semplice.
+
+### Da dove esce l'audio
+
+```
+YouTube / player ─► uscita audio di Windows = mixer USB ─► canale USB IN del mixer ─► casse
+microfoni ───────────────────────────────────────────────► mixer ─► casse
+mixer (main mix: voce + base) ─► ingresso USB di Windows ─► registrazione
+```
+
+- Il mini PC non ha bisogno di un altoparlante proprio: il suono deve uscire dalle **casse del mixer**, e il volume si regola sul **mixer**.
+- La TV mostra solo l'immagine; il suo volume può restare a zero. Se il suono esce dalla TV, l'uscita di Windows è finita sull'HDMI: va rimessa su "USB Audio CODEC" (vedi la configurazione di Windows qui sotto). In quel caso la base non arriverebbe al mixer e nella registrazione ci sarebbe solo la voce.
+- Il riascolto da "Le mie registrazioni" esce dalle stesse casse.
+
 ### Telecomando
 
 | Tasto | Azione |
