@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { studio } from '../lib/api'
 
 /** Parole che identificano il mixer Alto Live 802 visto da Windows */
 const MIXER_HINTS = ['usb audio codec', 'usb audio']
@@ -39,7 +40,7 @@ export function useAudioDevices(pollMs = 4000): AudioDevicesState {
       const all = await navigator.mediaDevices.enumerateDevices()
       const inputs = all.filter((d) => d.kind === 'audioinput' && d.deviceId !== 'default' && d.deviceId !== 'communications')
       const outputs = all.filter((d) => d.kind === 'audiooutput')
-      const mixerInput = findMixer(inputs)
+      const mixerInput = findMixer(inputs, await studio.mixerHint())
       setState({ inputs, outputs, mixerInput, mixerConnected: !!mixerInput })
     } catch {
       setState((s) => ({ ...s, mixerConnected: false }))

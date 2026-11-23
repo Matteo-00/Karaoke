@@ -2,7 +2,7 @@
 
 App desktop per Windows 11 che permette di cantare sulle basi di YouTube e registrare voce + base direttamente dal mixer, usando **solo il telecomando**.
 
-> Stato: **fase 2 completata**: YouTube dentro l'app, con il video che si ferma al play, il messaggio "Vuoi registrare?" e il conto alla rovescia. La registrazione vera arriva nella fase 3.
+> Stato: **fasi 1–5 completate**: YouTube con "Vuoi registrare?", registrazione dal mixer, salvataggio in MP3 con nome e cartella, recupero dopo un crash, "Le mie registrazioni" con cartelle, filtri e player.
 
 Tema **Ardesia**, con il pulsante in Home per passare da notte a giorno:
 
@@ -61,6 +61,8 @@ electron/
   settings.ts      impostazioni persistenti (electron-store)
   youtube.ts       vista di YouTube (WebContentsView), zoom, tasti, foto per i dialog
   youtube-preload.ts  dentro YouTube: ferma il video al play, rileva pubblicità
+  library.ts       archivio: library.json, cartelle, registrazioni temporanee, eliminate
+  audio-convert.ts ffmpeg WebM → MP3, lettura della durata
 src/
   App.tsx          gestione delle schermate
   screens/         Home, schermate in arrivo
@@ -85,6 +87,30 @@ docs/screenshots/  anteprime delle schermate
 | Vuoi registrare? | Conto alla rovescia |
 |---|---|
 | ![](docs/screenshots/fase2/2-vuoi-registrare.png) | ![](docs/screenshots/fase2/3-conto-alla-rovescia.png) |
+
+### Registrazione e salvataggio
+
+- Al "VAI!" la registrazione parte ~200 ms prima del video, così l'inizio della base non si taglia.
+- Si registra l'ingresso del mixer (voce + base) senza cancellazione dell'eco, riduzione del rumore o guadagno automatico; niente monitoraggio dalle casse.
+- Video in pausa o pubblicità → registrazione in pausa; riprende da sola.
+- Fine canzone o **STOP** → nome già pronto (es. "Volare – 23-11-2026") → cartella → MP3 192 kbps stereo 48 kHz.
+- La registrazione viene scritta su disco ogni secondo: dopo un crash, al riavvio l'app propone di recuperarla.
+- Cambiando canzone o uscendo durante la registrazione, l'app chiede "Vuoi salvare?".
+
+Su disco (di default `Documenti\Studio Karaoke\`):
+
+```
+Registrazioni\Generale\*.mp3
+Registrazioni\<cartelle>\*.mp3
+Eliminate\*.mp3          ← recuperabili per 14 giorni
+.temp\                   ← registrazioni in corso
+library.json             ← indice, ricostruito dal disco a ogni avvio
+```
+
+| Registrazione | Le mie registrazioni |
+|---|---|
+| ![](docs/screenshots/fase3-5/01-registrazione.png) | ![](docs/screenshots/fase3-5/06-tutte.png) |
+| ![](docs/screenshots/fase3-5/03-nome.png) | ![](docs/screenshots/fase3-5/10-player.png) |
 
 ### Telecomando
 
@@ -113,9 +139,9 @@ Ogni dialog intrappola il focus e parte dalla scelta più sicura (es. "Annulla")
 
 - [x] 1. Scheletro: Electron + React + TypeScript, schermo intero, Home, pulsante Esci, frecce, toast e dialog
 - [x] 2. YouTube nel `WebContentsView` con zoom, barre e intercettazione del play
-- [ ] 3. Registrazione: VU meter, conto alla rovescia, MediaRecorder, pubblicità
-- [ ] 4. Salvataggio: tastiera a schermo, selettore cartelle, MP3, recupero dei file temporanei
-- [ ] 5. Le mie registrazioni: cartelle, filtri, player
+- [x] 3. Registrazione: VU meter, conto alla rovescia, MediaRecorder, pubblicità
+- [x] 4. Salvataggio: tastiera a schermo, selettore cartelle, MP3, recupero dei file temporanei
+- [x] 5. Le mie registrazioni: cartelle, filtri, player
 - [ ] 6. Registrazioni eliminate (14 giorni)
 - [ ] 7. Impostazioni, tester dei tasti, avvio automatico
 - [ ] 8. Ricerca vocale, copia su chiavetta USB

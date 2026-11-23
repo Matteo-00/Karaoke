@@ -57,6 +57,11 @@ body {
   box-shadow: var(--focus-ring);
   z-index: 1;
 }
+/* Contenitori che ricevono il focus senza mostrarlo (es. il player) */
+[data-nav][data-nav-plain]:focus {
+  transform: none;
+  box-shadow: none;
+}
 /* Finestra senza focus (si sta usando YouTube): niente bordo di focus */
 html[data-window-blurred] [data-nav]:focus {
   transform: none;
@@ -121,3 +126,9 @@ html[data-window-blurred] [data-nav]:focus {
   80%  { opacity: 1; transform: scale(0.95); }
   100% { opacity: 0.15; transform: scale(0.85); }
 }
+
+/* ------------------------------------------------------------ VU meter */
+.vu-seg { background: var(--vu-off, rgb(127 127 127 / 0.2)); transition: background-color 60ms linear; }
+.vu-green[data-on]  { background: #22c55e; }
+.vu-yellow[data-on] { background: #facc15; }
+.vu-red[data-on]    { background: #ef4444; }

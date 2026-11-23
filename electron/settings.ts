@@ -16,6 +16,10 @@ export interface Settings {
   youtubeZoom: number
   /** Secondi del conto alla rovescia */
   countdownSeconds: number
+  /** Cartella radice dei dati (vuota = Documenti\\Studio Karaoke) */
+  dataRoot: string
+  /** Qualità MP3 in kbps */
+  mp3Bitrate: number
 }
 
 const defaults: Settings = {
@@ -25,7 +29,9 @@ const defaults: Settings = {
   theme: 'ardesia',
   youtubeUrl: 'https://www.youtube.com',
   youtubeZoom: 1.35,
-  countdownSeconds: 5
+  countdownSeconds: 5,
+  dataRoot: '',
+  mp3Bitrate: 192
 }
 
 export const settings = new Store<Settings>({ name: 'impostazioni', defaults })

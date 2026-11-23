@@ -1,4 +1,5 @@
-import { Circle, Square } from 'lucide-react'
+import { Cable, Circle, Square, TriangleAlert } from 'lucide-react'
+import { VuMeter } from './VuMeter'
 
 export type RecStatus = 'ready' | 'countdown' | 'listening' | 'recording' | 'paused' | 'saving'
 
@@ -23,16 +24,19 @@ interface Props {
   canRecord: boolean
   onRecord: () => void
   onStop: () => void
+  analyser: AnalyserNode | null
+  /** Stato dell'ingresso: mixer ok, altro microfono, niente */
+  input: { ok: boolean; isMixer: boolean; label: string }
 }
 
 /** Barra inferiore "Registrazione": stato, tempo, canzone, Registra e STOP */
-export function RecordingBar({ status, seconds, songTitle, canRecord, onRecord, onStop }: Props) {
+export function RecordingBar({ status, seconds, songTitle, canRecord, onRecord, onStop, analyser, input }: Props) {
   const st = STATUS[status]
   const recordingNow = status === 'recording' || status === 'paused'
   return (
     <footer className="t-header flex h-[7rem] shrink-0 items-center gap-6 border-t-2 px-[1.5rem]">
       {/* Stato */}
-      <div className={`flex min-w-[19rem] items-center gap-4 text-[1.9rem] font-black ${st.text}`}>
+      <div className={`flex min-w-[16.5rem] items-center gap-4 text-[1.8rem] font-black ${st.text}`}>
         <span className={`size-[1.6rem] shrink-0 rounded-full ${st.dot} ${st.pulse ? 'anim-rec' : ''}`} />
         {st.label}
       </div>
@@ -43,6 +47,24 @@ export function RecordingBar({ status, seconds, songTitle, canRecord, onRecord, 
         style={{ fontVariantNumeric: 'tabular-nums' }}
       >
         {mmss(seconds)}
+      </div>
+
+      {/* Livello del microfono (sempre visibile) */}
+      <div className="flex w-[13rem] shrink-0 flex-col gap-1">
+        <VuMeter analyser={analyser} />
+        <span className={`flex items-center gap-1 truncate text-[1.05rem] font-bold ${input.ok && input.isMixer ? 't-muted' : 'text-[#e8a100]'}`}>
+          {!input.ok ? (
+            <>
+              <Cable className="size-[1.2rem] shrink-0" /> Mixer non collegato
+            </>
+          ) : input.isMixer ? (
+            'Microfono del mixer'
+          ) : (
+            <>
+              <TriangleAlert className="size-[1.2rem] shrink-0" /> Non è il mixer
+            </>
+          )}
+        </span>
       </div>
 
       {/* Canzone */}

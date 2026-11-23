@@ -21,6 +21,48 @@ const browserMock: StudioApi = {
     return { ok: false, message: 'Anteprima nel browser: il PC non viene spento' }
   },
   async setTheme() {},
+  async mixerHint() {
+    return 'USB Audio'
+  },
+  recorder: {
+    async begin() {
+      return 'anteprima'
+    },
+    async chunk() {},
+    async finish() {},
+    async orphans() {
+      return []
+    }
+  },
+  library: {
+    async get() {
+      return { recordings: [], folders: ['Generale'] }
+    },
+    async saveTemp() {
+      throw new Error('Anteprima nel browser')
+    },
+    async discardTemp() {},
+    async createFolder(name: string) {
+      return name
+    },
+    async renameFolder(_a: string, b: string) {
+      return b
+    },
+    async deleteFolder() {
+      return 0
+    },
+    async rename() {},
+    async move() {},
+    async setFavorite() {},
+    async remove() {},
+    async restore() {},
+    async readAudio() {
+      return new ArrayBuffer(0)
+    },
+    onChanged() {
+      return () => {}
+    }
+  },
   youtube: {
     async show() {},
     async setBounds() {},

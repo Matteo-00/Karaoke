@@ -79,6 +79,8 @@ export function RemoteKeysProvider({
       }
       if (BACK_KEYS.has(e.key)) {
         if (e.key === 'Backspace' && isTextInput(target)) return
+        // Nella tastiera a schermo Backspace cancella (lo gestisce la tastiera)
+        if (e.key === 'Backspace' && document.querySelector('[data-text-entry]')) return
         e.preventDefault()
         runBack()
         return

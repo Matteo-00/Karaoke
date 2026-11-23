@@ -97,6 +97,9 @@ export function setupYouTube(opts: Options): void {
       if (input.key === 'Escape' || input.key === 'BrowserBack' || input.key === 'GoBack') {
         event.preventDefault()
         sendToUi({ type: 'key', key: 'back' })
+      } else if (input.key === 'MediaStop') {
+        event.preventDefault()
+        sendToUi({ type: 'key', key: 'stop' })
       } else if (input.key === 'BrowserHome') {
         event.preventDefault()
         sendToUi({ type: 'key', key: 'home' })

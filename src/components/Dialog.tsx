@@ -13,7 +13,7 @@ interface Props {
   /** Chiamato con il tasto Indietro */
   onClose: () => void
   tone?: 'default' | 'danger' | 'warn'
-  width?: 'md' | 'lg'
+  width?: 'md' | 'lg' | 'xl'
 }
 
 // Colori dal tema; il "tono" cambia solo il colore dell'icona
@@ -34,6 +34,7 @@ export function Dialog({ title, icon, children, actions, onClose, tone = 'defaul
   useBackHandler(() => {
     onClose()
   })
+  // Nota: un dialog senza via di fuga può passare onClose che non fa nulla
 
   // Segnala che c'è un livello aperto (YouTube si nasconde)
   useEffect(() => pushOverlay(), [])
@@ -59,7 +60,7 @@ export function Dialog({ title, icon, children, actions, onClose, tone = 'defaul
         data-nav-scope=""
         role="dialog"
         aria-modal="true"
-        className={`anim-pop flex flex-col items-center gap-8 t-dialog rounded-[2.25rem] border-2 px-14 py-12 text-center shadow-2xl shadow-black/30 ${tones[tone]} ${width === 'lg' ? 'w-[68rem]' : 'w-[56rem]'} max-w-[94vw]`}
+        className={`anim-pop flex flex-col items-center gap-8 t-dialog rounded-[2.25rem] border-2 px-14 py-12 text-center shadow-2xl shadow-black/30 ${tones[tone]} ${width === 'xl' ? 'w-[80rem] gap-6 px-10 py-8' : width === 'lg' ? 'w-[68rem]' : 'w-[56rem]'} max-w-[94vw]`}
       >
         {icon && (
           <div className="dialog-icon t-btn-neutral flex size-[6rem] items-center justify-center rounded-full [&>svg]:size-[3.4rem]">

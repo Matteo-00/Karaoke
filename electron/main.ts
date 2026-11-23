@@ -9,6 +9,7 @@ import { join } from 'node:path'
 import { IPC, THEMES, type AppInfo, type ThemeId } from './ipc-types'
 import { settings } from './settings'
 import { setupYouTube } from './youtube'
+import { Library, defaultRoot } from './library'
 
 // __dirname è fornito da electron-vite anche nel bundle ESM
 
@@ -17,6 +18,19 @@ const isDev = !app.isPackaged
 const windowed = process.env.STUDIO_WINDOWED === '1'
 
 let mainWindow: BrowserWindow | null = null
+/** Promessa che si risolve quando l'archivio è pronto */
+let libraryReady: Promise<Library> | null = null
+
+function startLibrary(): Promise<Library> {
+  const root = settings.get('dataRoot') || defaultRoot()
+  const lib = new Library(root, {
+    bitrate: () => settings.get('mp3Bitrate'),
+    log,
+    onChange: () => mainWindow?.webContents.send(IPC.libChanged)
+  })
+  return lib.init().then(() => lib)
+}
+const lib = () => libraryReady ?? (libraryReady = startLibrary())
 /** Evita di riavviare all'infinito se il renderer crasha in loop */
 let recentCrashes: number[] = []
 
@@ -185,8 +199,33 @@ function registerIpc(): void {
     if (THEMES.includes(theme)) settings.set('theme', theme)
   })
 
-  // Fase 1: l'indice delle registrazioni arriva nelle fasi 4-5
-  ipcMain.handle(IPC.recordingCount, () => 0)
+  ipcMain.handle(IPC.recordingCount, async () => (await lib()).count())
+  ipcMain.handle(IPC.mixerHint, () => settings.get('mixerLabelHint'))
+
+  // Registrazione: file temporaneo scritto a pezzi
+  ipcMain.handle(IPC.recBegin, async (_e, meta) => (await lib()).beginTemp(meta))
+  ipcMain.handle(IPC.recChunk, async (_e, id: string, data: ArrayBuffer) => (await lib()).appendTemp(id, data))
+  ipcMain.handle(IPC.recFinish, async (_e, id: string, sec: number) => (await lib()).finishTemp(id, sec))
+  ipcMain.handle(IPC.recOrphans, async () => (await lib()).orphans())
+
+  // Archivio
+  ipcMain.handle(IPC.libGet, async () => (await lib()).snapshot())
+  ipcMain.handle(IPC.libSaveTemp, async (_e, a: { tempId: string; title: string; folder: string }) =>
+    (await lib()).saveTemp(a.tempId, a.title, a.folder)
+  )
+  ipcMain.handle(IPC.libDiscardTemp, async (_e, id: string) => (await lib()).discardTemp(id))
+  ipcMain.handle(IPC.libCreateFolder, async (_e, name: string) => (await lib()).createFolder(name))
+  ipcMain.handle(IPC.libRenameFolder, async (_e, a: string, b: string) => (await lib()).renameFolder(a, b))
+  ipcMain.handle(IPC.libDeleteFolder, async (_e, name: string) => (await lib()).deleteFolder(name))
+  ipcMain.handle(IPC.libRename, async (_e, id: string, title: string) => (await lib()).rename(id, title))
+  ipcMain.handle(IPC.libMove, async (_e, id: string, folder: string) => (await lib()).move(id, folder))
+  ipcMain.handle(IPC.libFavorite, async (_e, id: string, fav: boolean) => (await lib()).setFavorite(id, fav))
+  ipcMain.handle(IPC.libRemove, async (_e, id: string) => (await lib()).remove(id))
+  ipcMain.handle(IPC.libRestore, async (_e, id: string) => (await lib()).restore(id))
+  ipcMain.handle(IPC.libReadAudio, async (_e, id: string) => {
+    const buf = await (await lib()).readAudio(id)
+    return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength)
+  })
 }
 
 // ---------------------------------------------------------------- avvio
@@ -194,6 +233,7 @@ function onReady(): void {
   applyAutoStart()
   setupPermissions()
   registerIpc()
+  lib().catch((err) => log('errore archivio:', err))
   mainWindow = createWindow()
   mainWindow.on('closed', () => {
     mainWindow = null

@@ -47,7 +47,7 @@ export type YtEvent =
       duration: number
     }
   | { type: 'ended'; videoId: string }
-  | { type: 'key'; key: 'back' | 'home' }
+  | { type: 'key'; key: 'back' | 'home' | 'stop' }
   /** YouTube ha preso (true) o perso (false) il focus della tastiera */
   | { type: 'focus'; youtube: boolean }
 
@@ -87,6 +87,10 @@ export interface StudioApi {
   /** Salva il tema scelto (es. pulsante Giorno/Notte) */
   setTheme(theme: ThemeId): Promise<void>
   youtube: YouTubeApi
+  recorder: RecorderApi
+  library: LibraryApi
+  /** Etichetta (parziale) del dispositivo audio del mixer */
+  mixerHint(): Promise<string>
 }
 
 export const IPC = {
@@ -103,5 +107,101 @@ export const IPC = {
   /** preload YouTube → main */
   ytFromPage: 'yt:from-page',
   /** main → interfaccia */
-  ytEvent: 'yt:event'
+  ytEvent: 'yt:event',
+  mixerHint: 'settings:mixer-hint',
+  recBegin: 'rec:begin',
+  recChunk: 'rec:chunk',
+  recFinish: 'rec:finish',
+  recOrphans: 'rec:orphans',
+  libGet: 'lib:get',
+  libSaveTemp: 'lib:save-temp',
+  libDiscardTemp: 'lib:discard-temp',
+  libCreateFolder: 'lib:create-folder',
+  libRenameFolder: 'lib:rename-folder',
+  libDeleteFolder: 'lib:delete-folder',
+  libRename: 'lib:rename',
+  libMove: 'lib:move',
+  libFavorite: 'lib:favorite',
+  libRemove: 'lib:remove',
+  libRestore: 'lib:restore',
+  libReadAudio: 'lib:read-audio',
+  libChanged: 'lib:changed'
 } as const
+
+// ======================================================= registrazioni
+
+/** Nome interno della "cartella" delle registrazioni eliminate */
+export const DELETED_FOLDER = '__deleted__'
+/** Cartella predefinita, non eliminabile */
+export const DEFAULT_FOLDER = 'Generale'
+
+/** Un record dell'indice library.json */
+export interface Recording {
+  id: string
+  /** Nome mostrato */
+  title: string
+  fileName: string
+  /** "Generale" | nome cartella utente | "__deleted__" */
+  folder: string
+  originalFolder?: string
+  /** ISO */
+  createdAt: string
+  durationSec: number
+  sizeBytes: number
+  favorite: boolean
+  /** ISO, presente se è nelle registrazioni eliminate */
+  deletedAt?: string
+  videoId?: string
+  videoTitle?: string
+}
+
+export interface LibrarySnapshot {
+  recordings: Recording[]
+  /** Cartelle reali: "Generale" per prima, poi quelle dell'utente in ordine alfabetico */
+  folders: string[]
+}
+
+/** Registrazione appena fatta (o rimasta da un crash), non ancora salvata */
+export interface TempRecording {
+  id: string
+  title: string
+  videoId?: string
+  videoTitle?: string
+  startedAt: string
+  durationSec: number
+  sizeBytes: number
+}
+
+export interface RecorderApi {
+  /** Crea il file temporaneo e restituisce il suo id */
+  begin(meta: { title: string; videoId?: string; videoTitle?: string }): Promise<string>
+  /** Aggiunge un pezzo (1 secondo circa) al file temporaneo */
+  chunk(id: string, data: ArrayBuffer): Promise<void>
+  /** Registrazione finita: annota la durata */
+  finish(id: string, durationSec: number): Promise<void>
+  /** Registrazioni temporanee rimaste da una sessione precedente (crash) */
+  orphans(): Promise<TempRecording[]>
+}
+
+export interface LibraryApi {
+  get(): Promise<LibrarySnapshot>
+  /** Converte in MP3 e salva nella cartella scelta */
+  saveTemp(args: { tempId: string; title: string; folder: string }): Promise<Recording>
+  /** Scarta: finisce comunque nelle registrazioni eliminate (14 giorni) */
+  discardTemp(tempId: string): Promise<void>
+  createFolder(name: string): Promise<string>
+  renameFolder(oldName: string, newName: string): Promise<string>
+  /** Elimina la cartella: le sue registrazioni vanno in quelle eliminate. Restituisce quante erano */
+  deleteFolder(name: string): Promise<number>
+  rename(id: string, title: string): Promise<void>
+  move(id: string, folder: string): Promise<void>
+  setFavorite(id: string, favorite: boolean): Promise<void>
+  /** Sposta nelle registrazioni eliminate */
+  remove(id: string): Promise<void>
+  /** Riporta nella cartella originale (Annulla / Ripristina) */
+  restore(id: string): Promise<void>
+  /** Contenuto del file MP3, per il player */
+  readAudio(id: string): Promise<ArrayBuffer>
+  /** Avvisa quando l'archivio cambia */
+  onChanged(cb: () => void): () => void
+}

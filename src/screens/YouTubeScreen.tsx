@@ -1,15 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Circle, Headphones, Loader2, MonitorPlay } from 'lucide-react'
+import { Circle, Headphones, Loader2, MonitorPlay, Play, Save, Square, Trash2 } from 'lucide-react'
 import type { ViewBounds, YtEvent } from '../../electron/ipc-types'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { RecordingBar, type RecStatus } from '../components/RecordingBar'
 import { Dialog } from '../components/Dialog'
 import { Button } from '../components/Button'
 import { Countdown } from '../components/Countdown'
+import { SaveFlow } from '../components/SaveFlow'
 import { useToast } from '../components/Toast'
 import { useBackHandler } from '../navigation/RemoteKeys'
 import { useOverlayCount } from '../lib/overlays'
 import { studio } from '../lib/api'
+import { cleanSongTitle, defaultRecordingName } from '../lib/text'
+import { useMixerInput } from '../hooks/useMixerInput'
+import { useRecorder } from '../hooks/useRecorder'
 
 interface VideoState {
   videoId: string | null
@@ -18,14 +22,30 @@ interface VideoState {
   ad: boolean
 }
 
+interface AskState {
+  videoId: string
+  title: string
+}
+
+/** Perché chiediamo "Vuoi salvare?" durante una registrazione */
+type ConfirmReason = 'leave' | 'back' | 'newVideo'
+
+interface Props {
+  onHome: () => void
+  countdownSeconds: number
+  /** Registra la funzione che l'app chiama prima di lasciare la schermata (tasto Home) */
+  setLeaveGuard: (guard: (() => boolean) | null) => void
+}
+
 /**
  * Schermata "YouTube – Canta": barra in alto, YouTube al centro,
  * barra "Registrazione" in basso.
  *
  * Flusso: play su YouTube → il video si ferma → "Vuoi registrare?" →
- * conto alla rovescia 5-4-3-2-1-VAI! → il video riparte da capo.
+ * 5-4-3-2-1-VAI! (la registrazione parte ~200 ms prima del video) →
+ * fine canzone o STOP → nome → cartella → MP3 salvato.
  */
-export function YouTubeScreen({ onHome, countdownSeconds }: { onHome: () => void; countdownSeconds: number }) {
+export function YouTubeScreen({ onHome, countdownSeconds, setLeaveGuard }: Props) {
   const yt = studio.youtube
   const toast = useToast()
   const areaRef = useRef<HTMLDivElement>(null)
@@ -33,11 +53,34 @@ export function YouTubeScreen({ onHome, countdownSeconds }: { onHome: () => void
   const overlaysRef = useRef(overlays)
   overlaysRef.current = overlays
 
+  const mixer = useMixerInput(true)
+  const recorder = useRecorder(mixer.stream)
+
   const [snapshot, setSnapshot] = useState<string | null>(null)
   const [video, setVideo] = useState<VideoState>({ videoId: null, title: '', playing: false, ad: false })
-  const [ask, setAsk] = useState<{ videoId: string; title: string } | null>(null)
+  const [ask, setAsk] = useState<AskState | null>(null)
   const [countingDown, setCountingDown] = useState(false)
   const [status, setStatus] = useState<RecStatus>('ready')
+  const [save, setSave] = useState<{ tempId: string; durationSec: number; name: string } | null>(null)
+  const [confirm, setConfirm] = useState<ConfirmReason | null>(null)
+
+  // Valori sempre aggiornati per i gestori di eventi
+  const statusRef = useRef(status)
+  statusRef.current = status
+  const videoRef = useRef(video)
+  videoRef.current = video
+  const busyRef = useRef(false) // dialog di salvataggio o conferma aperti
+  busyRef.current = !!save || !!confirm
+  /** Canzone in registrazione */
+  const recSong = useRef<{ videoId: string | null; title: string }>({ videoId: null, title: '' })
+  /** Cosa fare quando il salvataggio è finito */
+  const after = useRef<{ home?: boolean; ask?: AskState }>({})
+  /** Subito dopo il "VAI!" ignoriamo le pause (il video sta ancora partendo) */
+  const graceUntil = useRef(0)
+  const startedRec = useRef(false)
+  const listeningId = useRef<string | null>(null)
+  const askTimer = useRef<number | undefined>(undefined)
+  const titleRef = useRef<{ id: string | null; title: string }>({ id: null, title: '' })
 
   const bounds = useCallback((): ViewBounds | null => {
     const el = areaRef.current
@@ -65,7 +108,6 @@ export function YouTubeScreen({ onHome, countdownSeconds }: { onHome: () => void
     return () => cancelAnimationFrame(id)
   }, [overlays, yt, bounds])
 
-  // Ridimensionamenti della finestra
   useEffect(() => {
     const el = areaRef.current
     if (!el) return
@@ -77,9 +119,9 @@ export function YouTubeScreen({ onHome, countdownSeconds }: { onHome: () => void
     return () => ro.disconnect()
   }, [yt, bounds])
 
-  // Uscendo dalla schermata: pausa e YouTube nascosto
   useEffect(
     () => () => {
+      window.clearTimeout(askTimer.current)
       yt.command('pause')
       yt.hide(false)
       document.documentElement.removeAttribute('data-window-blurred')
@@ -87,54 +129,159 @@ export function YouTubeScreen({ onHome, countdownSeconds }: { onHome: () => void
     [yt]
   )
 
-  // ------------------------------------------------ navigazione
+  // ------------------------------------------------ fine registrazione
+  /** Ferma la registrazione e apre il salvataggio */
+  const finishRecording = useCallback(async () => {
+    if (statusRef.current !== 'recording' && statusRef.current !== 'paused') return
+    statusRef.current = 'saving'
+    setStatus('saving')
+    yt.command('pause')
+    const res = await recorder.stop()
+    if (!res) {
+      toast({ tone: 'error', message: 'La registrazione non è riuscita' })
+      setStatus('ready')
+      return
+    }
+    setSave({ tempId: res.tempId, durationSec: res.durationSec, name: defaultRecordingName(recSong.current.title) })
+  }, [recorder, toast, yt])
+
+  /** Ferma e scarta (va comunque tra le eliminate, recuperabile) */
+  const discardRecording = useCallback(async () => {
+    statusRef.current = 'saving'
+    setStatus('saving')
+    const res = await recorder.stop()
+    if (res) {
+      studio.library.discardTemp(res.tempId).catch(() => undefined)
+      toast({ tone: 'info', message: 'Scartata: la trovi in «Registrazioni eliminate»' })
+    }
+    setStatus('ready')
+  }, [recorder, toast])
+
+  /** Dopo il salvataggio: torna alla Home o chiede per la nuova canzone */
+  const afterSave = useCallback(() => {
+    setSave(null)
+    setStatus('ready')
+    const next = after.current
+    after.current = {}
+    if (next.home) onHome()
+    else if (next.ask && next.ask.videoId === videoRef.current.videoId) setAsk(next.ask)
+  }, [onHome])
+
+  // ------------------------------------------------ uscire dalla schermata
+  const isRecording = () => statusRef.current === 'recording' || statusRef.current === 'paused'
+
+  /** true = abbiamo bloccato l'uscita (c'è qualcosa da decidere prima) */
+  const guard = useCallback((): boolean => {
+    if (save || statusRef.current === 'saving') return true
+    if (isRecording()) {
+      setConfirm('leave')
+      return true
+    }
+    return false
+  }, [save])
+
+  useEffect(() => {
+    setLeaveGuard(guard)
+    return () => setLeaveGuard(null)
+  }, [guard, setLeaveGuard])
+
+  const leave = useCallback(() => {
+    if (!guard()) onHome()
+  }, [guard, onHome])
+
   const goBack = useCallback(() => {
+    if (isRecording()) {
+      setConfirm('back')
+      return
+    }
+    if (save || statusRef.current === 'saving') return
     yt.goBack().then((went) => {
       if (!went) onHome()
     })
-  }, [yt, onHome])
+  }, [yt, onHome, save])
 
   useBackHandler(() => {
     goBack()
   })
 
-  // ------------------------------------------------ eventi da YouTube
-  const askTimer = useRef<number | undefined>(undefined)
-  const titleRef = useRef<{ id: string | null; title: string }>({ id: null, title: '' })
-  /** Il video per cui la barra mostra "Solo ascolto" */
-  const listeningId = useRef<string | null>(null)
-  useEffect(() => () => window.clearTimeout(askTimer.current), [])
+  // Tasto STOP del telecomando (se presente)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'MediaStop' && isRecording()) {
+        e.preventDefault()
+        finishRecording()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [finishRecording])
 
-  const handlers = useRef({ goBack, onHome })
-  handlers.current = { goBack, onHome }
+  // ------------------------------------------------ eventi da YouTube
+  const handlers = useRef({ goBack, leave, finishRecording, recorder })
+  handlers.current = { goBack, leave, finishRecording, recorder }
 
   useEffect(() => {
     return yt.onEvent((e: YtEvent) => {
+      const h = handlers.current
       switch (e.type) {
-        case 'video-start':
-          // Nuovo video: è già fermo all'inizio, chiediamo cosa fare.
-          // Aspettiamo un attimo che la pagina mostri il video fermo, così la
-          // foto dietro al messaggio è quella giusta.
+        case 'video-start': {
+          const next = { videoId: e.videoId, title: e.title }
           setCountingDown(false)
-          setStatus('ready')
           setVideo((v) => ({ ...v, videoId: e.videoId, title: e.title }))
+          if (isRecording()) {
+            // Cambio di canzone durante la registrazione: pausa e domanda
+            h.recorder.pause()
+            statusRef.current = 'paused'
+            setStatus('paused')
+            after.current.ask = next
+            setConfirm('newVideo')
+            break
+          }
+          if (busyRef.current || statusRef.current === 'saving') {
+            after.current.ask = next
+            break
+          }
+          setStatus('ready')
+          // Aspettiamo che la pagina mostri il video fermo, così la foto dietro
+          // al messaggio è quella giusta
           window.clearTimeout(askTimer.current)
           askTimer.current = window.setTimeout(() => {
-            setAsk((a) => a ?? { videoId: e.videoId, title: titleRef.current.id === e.videoId ? titleRef.current.title : e.title })
+            if (busyRef.current) {
+              after.current.ask = next
+              return
+            }
+            setAsk((a) => a ?? { ...next, title: titleRef.current.id === e.videoId ? titleRef.current.title : e.title })
           }, 350)
           break
+        }
         case 'meta':
           titleRef.current = { id: e.videoId, title: e.title }
           setAsk((a) => (a && a.videoId === e.videoId ? { ...a, title: e.title } : a))
           setVideo((v) => (v.videoId === e.videoId ? { ...v, title: e.title } : v))
+          if (recSong.current.videoId === e.videoId) recSong.current.title = e.title
           break
-        case 'state':
+        case 'state': {
           setVideo({ videoId: e.videoId, title: e.title, playing: e.playing, ad: e.ad })
-          // Cambiando video (o uscendo dalla pagina del video) "Solo ascolto" torna "Pronto"
           if (e.videoId !== listeningId.current) setStatus((s) => (s === 'listening' ? 'ready' : s))
+          const st = statusRef.current
+          const sameSong = e.videoId === recSong.current.videoId
+          // Pubblicità o video in pausa → registrazione in pausa
+          if (st === 'recording' && performance.now() > graceUntil.current && (e.ad || (!e.playing && !e.ended))) {
+            h.recorder.pause()
+            statusRef.current = 'paused'
+            setStatus('paused')
+          }
+          // Torna la canzone → la registrazione riprende (senza conto alla rovescia)
+          if (st === 'paused' && sameSong && e.playing && !e.ad && !busyRef.current) {
+            h.recorder.resume()
+            statusRef.current = 'recording'
+            setStatus('recording')
+          }
           break
+        }
         case 'ended':
-          setStatus((s) => (s === 'listening' ? 'ready' : s))
+          if (isRecording()) h.finishRecording()
+          else setStatus((s) => (s === 'listening' ? 'ready' : s))
           break
         case 'focus':
           // Mentre si usa YouTube il bordo giallo dell'interfaccia non serve
@@ -142,8 +289,9 @@ export function YouTubeScreen({ onHome, countdownSeconds }: { onHome: () => void
           else document.documentElement.removeAttribute('data-window-blurred')
           break
         case 'key':
-          if (e.key === 'back') handlers.current.goBack()
-          else handlers.current.onHome()
+          if (e.key === 'back') h.goBack()
+          else if (e.key === 'home') h.leave()
+          else if (e.key === 'stop' && isRecording()) h.finishRecording()
           break
       }
     })
@@ -151,6 +299,12 @@ export function YouTubeScreen({ onHome, countdownSeconds }: { onHome: () => void
 
   // ------------------------------------------------ azioni
   const startCountdown = () => {
+    if (!mixer.stream) {
+      toast({ tone: 'error', message: 'Non sento il mixer: controlla il cavo USB' })
+      yt.command('release')
+      setStatus('ready')
+      return
+    }
     setStatus('countdown')
     setCountingDown(true)
   }
@@ -168,7 +322,7 @@ export function YouTubeScreen({ onHome, countdownSeconds }: { onHome: () => void
   }
 
   const closeAsk = () => {
-    // Indietro: il video resta fermo, si può premere play per ascoltare o "Registra"
+    // Indietro: il video resta fermo; si può premere play per ascoltare o "Registra"
     setAsk(null)
     yt.command('release')
     setStatus('ready')
@@ -180,6 +334,26 @@ export function YouTubeScreen({ onHome, countdownSeconds }: { onHome: () => void
     startCountdown()
   }
 
+  const confirmSave = () => {
+    if (confirm === 'leave') after.current.home = true
+    setConfirm(null)
+    finishRecording()
+  }
+
+  const confirmDiscard = async () => {
+    const reason = confirm
+    setConfirm(null)
+    await discardRecording()
+    if (reason === 'leave') {
+      onHome()
+    } else if (after.current.ask) {
+      const next = after.current.ask
+      after.current = {}
+      setAsk(next)
+    }
+  }
+
+  const recordingNow = status === 'recording' || status === 'paused'
   const canRecord = !!video.videoId && !video.ad && (status === 'ready' || status === 'listening')
 
   return (
@@ -187,7 +361,7 @@ export function YouTubeScreen({ onHome, countdownSeconds }: { onHome: () => void
       <ScreenHeader
         title={video.videoId && video.title ? video.title : 'YouTube – Canta'}
         icon={<MonitorPlay className="t-power" />}
-        onHome={onHome}
+        onHome={leave}
       />
 
       {/* Area di YouTube: qui sopra si posiziona la vista nativa */}
@@ -201,11 +375,13 @@ export function YouTubeScreen({ onHome, countdownSeconds }: { onHome: () => void
 
       <RecordingBar
         status={status}
-        seconds={0}
-        songTitle={video.videoId ? video.title : ''}
+        seconds={recordingNow || status === 'saving' ? recorder.seconds : 0}
+        songTitle={recordingNow ? recSong.current.title : video.videoId ? video.title : ''}
         canRecord={canRecord}
         onRecord={manualRecord}
-        onStop={() => undefined}
+        onStop={finishRecording}
+        analyser={mixer.analyser}
+        input={{ ok: !!mixer.stream, isMixer: mixer.isMixer, label: mixer.label }}
       />
 
       {ask && (
@@ -232,12 +408,26 @@ export function YouTubeScreen({ onHome, countdownSeconds }: { onHome: () => void
       {countingDown && (
         <Countdown
           seconds={countdownSeconds}
+          onAlmost={() => {
+            // La registrazione parte ~200 ms prima del video: l'inizio della base non si taglia
+            recSong.current = { videoId: videoRef.current.videoId, title: videoRef.current.title }
+            startedRec.current = recorder.start({
+              title: videoRef.current.title,
+              videoId: videoRef.current.videoId ?? undefined,
+              videoTitle: videoRef.current.title
+            })
+          }}
           onGo={() => {
             yt.command('play')
-            // Fase 2: la registrazione vera e propria arriva nella fase 3
-            listeningId.current = video.videoId
-            setStatus('listening')
-            toast({ tone: 'info', message: 'Registrazione: in arrivo nella fase 3 🎤' })
+            graceUntil.current = performance.now() + 1500
+            if (startedRec.current) {
+              statusRef.current = 'recording'
+              setStatus('recording')
+            } else {
+              listeningId.current = videoRef.current.videoId
+              setStatus('listening')
+              toast({ tone: 'error', message: 'Non riesco a registrare: controlla il mixer' })
+            }
           }}
           onDone={() => setCountingDown(false)}
           onCancel={() => {
@@ -247,6 +437,52 @@ export function YouTubeScreen({ onHome, countdownSeconds }: { onHome: () => void
           }}
         />
       )}
+
+      {confirm && (
+        <Dialog
+          title={confirm === 'back' ? 'Vuoi fermare la registrazione?' : 'Vuoi salvare la registrazione?'}
+          icon={<Save className="t-accent-ink" />}
+          onClose={() => {
+            // Indietro: per "cambio canzone" salviamo (la scelta più sicura), altrimenti si continua
+            if (confirm === 'newVideo') confirmSave()
+            else setConfirm(null)
+          }}
+          width="lg"
+          actions={
+            confirm === 'back' ? (
+              <>
+                <Button
+                  variant="danger"
+                  icon={<Square className="fill-current" />}
+                  onClick={() => {
+                    setConfirm(null)
+                    finishRecording()
+                  }}
+                  className="min-w-[20rem]"
+                >
+                  Sì, ferma e salva
+                </Button>
+                <Button variant="neutral" icon={<Play />} autoFocusNav onClick={() => setConfirm(null)} className="min-w-[20rem]">
+                  No, continua
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="success" icon={<Save />} autoFocusNav onClick={confirmSave} className="min-w-[18rem]">
+                  Sì, salva
+                </Button>
+                <Button variant="neutral" icon={<Trash2 />} onClick={confirmDiscard} className="min-w-[18rem]">
+                  No
+                </Button>
+              </>
+            )
+          }
+        >
+          {confirm === 'newVideo' ? 'Hai cambiato canzone mentre registravi.' : `Stai registrando «${cleanSongTitle(recSong.current.title)}».`}
+        </Dialog>
+      )}
+
+      {save && <SaveFlow tempId={save.tempId} defaultName={save.name} durationSec={save.durationSec} onDone={afterSave} />}
     </div>
   )
 }
