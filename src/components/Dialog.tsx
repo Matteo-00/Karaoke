@@ -2,6 +2,7 @@ import { useEffect, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { focusDefault } from '../navigation/spatial'
 import { useBackHandler } from '../navigation/RemoteKeys'
+import { pushOverlay } from '../lib/overlays'
 
 interface Props {
   title: ReactNode
@@ -33,6 +34,9 @@ export function Dialog({ title, icon, children, actions, onClose, tone = 'defaul
   useBackHandler(() => {
     onClose()
   })
+
+  // Segnala che c'è un livello aperto (YouTube si nasconde)
+  useEffect(() => pushOverlay(), [])
 
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null

@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Disc3, MonitorPlay } from 'lucide-react'
+import { Disc3 } from 'lucide-react'
 import { RemoteKeysProvider } from './navigation/RemoteKeys'
 import { focusDefault } from './navigation/spatial'
 import { ToastProvider } from './components/Toast'
 import { Home } from './screens/Home'
 import { ComingSoon } from './screens/ComingSoon'
+import { YouTubeScreen } from './screens/YouTubeScreen'
 import { useAudioDevices } from './hooks/useAudioDevices'
 import { studio } from './lib/api'
 import { DAY_NIGHT, LIGHT_THEMES, THEMES, type ThemeId } from '../electron/ipc-types'
@@ -25,12 +26,14 @@ export default function App() {
   })
   const [appName, setAppName] = useState('Studio Karaoke')
   const [recordingCount, setRecordingCount] = useState(0)
+  const [countdownSeconds, setCountdownSeconds] = useState(5)
   const [theme, setTheme] = useState<ThemeId>(() => forcedTheme() ?? 'ardesia')
   const { mixerConnected } = useAudioDevices()
 
   useEffect(() => {
     studio.getInfo().then((info) => {
       setAppName(info.appName)
+      setCountdownSeconds(info.countdownSeconds)
       if (!forcedTheme()) setTheme(info.theme)
     })
   }, [])
@@ -78,12 +81,7 @@ export default function App() {
           />
         )}
         {screen === 'youtube' && (
-          <ComingSoon
-            title="YouTube – Canta"
-            icon={<MonitorPlay className="t-power" />}
-            phase="fase 2 (YouTube) e fase 3 (registrazione)"
-            onHome={goHome}
-          />
+          <YouTubeScreen onHome={goHome} countdownSeconds={countdownSeconds} />
         )}
         {screen === 'recordings' && (
           <ComingSoon

@@ -8,6 +8,7 @@ import { execFile } from 'node:child_process'
 import { join } from 'node:path'
 import { IPC, THEMES, type AppInfo, type ThemeId } from './ipc-types'
 import { settings } from './settings'
+import { setupYouTube } from './youtube'
 
 // __dirname è fornito da electron-vite anche nel bundle ESM
 
@@ -153,7 +154,8 @@ function registerIpc(): void {
     version: app.getVersion(),
     isDev,
     platform: process.platform,
-    theme: settings.get('theme')
+    theme: settings.get('theme'),
+    countdownSeconds: settings.get('countdownSeconds')
   }))
 
   ipcMain.handle(IPC.quitApp, () => {
@@ -195,6 +197,14 @@ function onReady(): void {
   mainWindow = createWindow()
   mainWindow.on('closed', () => {
     mainWindow = null
+  })
+  setupYouTube({
+    window: () => mainWindow,
+    preload: join(__dirname, '../preload/youtube-preload.cjs'),
+    // STUDIO_YT_URL permette di provare l'app con una pagina di test (vedi dev/finto-youtube)
+    url: () => process.env.STUDIO_YT_URL || settings.get('youtubeUrl'),
+    zoom: () => settings.get('youtubeZoom'),
+    log
   })
 }
 

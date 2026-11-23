@@ -14,9 +14,15 @@ export default defineConfig({
   preload: {
     build: {
       outDir: 'out/preload',
-      lib: { entry: resolve('electron/preload.ts'), formats: ['cjs'] },
-      // Il preload gira in sandbox: deve essere CommonJS
-      rollupOptions: { output: { entryFileNames: 'preload.cjs' } }
+      lib: {
+        entry: {
+          preload: resolve('electron/preload.ts'),
+          'youtube-preload': resolve('electron/youtube-preload.ts')
+        },
+        formats: ['cjs']
+      },
+      // I preload girano in sandbox: devono essere CommonJS
+      rollupOptions: { output: { entryFileNames: '[name].cjs' } }
     }
   },
   renderer: {

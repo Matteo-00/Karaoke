@@ -121,11 +121,20 @@ export function RemoteKeysProvider({
       })
     }
 
+    // Quando la finestra dell'interfaccia non ha il focus (es. si sta usando
+    // YouTube) nascondiamo il bordo giallo, per non distrarre
+    const onWinBlur = () => document.documentElement.setAttribute('data-window-blurred', '')
+    const onWinFocus = () => document.documentElement.removeAttribute('data-window-blurred')
+    window.addEventListener('blur', onWinBlur)
+    window.addEventListener('focus', onWinFocus)
+
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('mouseup', onMouseUp)
     window.addEventListener('pointermove', onPointerMove)
     document.addEventListener('focusout', onFocusOut)
     return () => {
+      window.removeEventListener('blur', onWinBlur)
+      window.removeEventListener('focus', onWinFocus)
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('mouseup', onMouseUp)
       window.removeEventListener('pointermove', onPointerMove)

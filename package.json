@@ -14,7 +14,9 @@
     "build": "npm run typecheck && electron-vite build",
     "preview": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "dist:win": "npm run build && electron-builder --win nsis --x64"
+    "dist:win": "npm run build && electron-builder --win nsis --x64",
+    "finto-youtube": "node dev/finto-youtube/server.mjs",
+    "dev:finto-youtube": "cross-env STUDIO_WINDOWED=1 STUDIO_YT_URL=http://127.0.0.1:8765 electron-vite dev"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.5",

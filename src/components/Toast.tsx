@@ -51,9 +51,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         <div
           key={toast.id}
           role="status"
-          className={`fixed top-[1.5rem] left-1/2 z-[60] flex max-w-[80vw] items-center gap-5 rounded-[1.5rem] border-2 bg-gradient-to-b px-9 py-5 text-[1.75rem] font-extrabold shadow-2xl shadow-black/50 [animation:toast-in_240ms_ease-out_both] ${tone.cls}`}
+          className={`fixed top-[0.6rem] left-1/2 z-[60] flex max-w-[80vw] items-center gap-5 rounded-[1.5rem] border-2 bg-gradient-to-b px-9 py-[0.7rem] text-[1.75rem] font-extrabold whitespace-nowrap shadow-2xl shadow-black/50 [animation:toast-in_240ms_ease-out_both] ${tone.cls}`}
         >
-          <span className="[&>svg]:size-[2.4rem]">{tone.icon}</span>
+          <span className="[&>svg]:size-[2.2rem]">{tone.icon}</span>
           <span>{toast.message}</span>
           {toast.actionLabel && (
             <button

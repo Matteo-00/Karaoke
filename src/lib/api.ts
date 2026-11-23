@@ -12,7 +12,7 @@ declare global {
  */
 const browserMock: StudioApi = {
   async getInfo() {
-    return { appName: 'Studio Karaoke', version: '0.1.0', isDev: true, platform: 'linux', theme: 'ardesia' }
+    return { appName: 'Studio Karaoke', version: '0.1.0', isDev: true, platform: 'linux', theme: 'ardesia', countdownSeconds: 5 }
   },
   async quitApp() {
     console.info('[anteprima] chiudi app')
@@ -21,6 +21,20 @@ const browserMock: StudioApi = {
     return { ok: false, message: 'Anteprima nel browser: il PC non viene spento' }
   },
   async setTheme() {},
+  youtube: {
+    async show() {},
+    async setBounds() {},
+    async hide() {
+      return null
+    },
+    async command() {},
+    async goBack() {
+      return false
+    },
+    onEvent() {
+      return () => {}
+    }
+  },
   async getRecordingCount() {
     const n = Number(new URLSearchParams(location.search).get('registrazioni') ?? 0)
     return Number.isFinite(n) ? n : 0

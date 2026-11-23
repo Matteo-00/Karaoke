@@ -2,7 +2,7 @@
 
 App desktop per Windows 11 che permette di cantare sulle basi di YouTube e registrare voce + base direttamente dal mixer, usando **solo il telecomando**.
 
-> Stato: **fase 1 completata** (scheletro, Home, pulsante Esci, navigazione col telecomando, dialog e toast).
+> Stato: **fase 2 completata**: YouTube dentro l'app, con il video che si ferma al play, il messaggio "Vuoi registrare?" e il conto alla rovescia. La registrazione vera arriva nella fase 3.
 
 Tema **Ardesia**, con il pulsante in Home per passare da notte a giorno:
 
@@ -36,6 +36,18 @@ npm run build          # controllo dei tipi + build di produzione in out/
 npm run dist:win       # crea l'installer NSIS per Windows x64 in release/
 ```
 
+### Provare senza internet: il "finto YouTube"
+
+`dev/finto-youtube` è una pagina che imita il player di YouTube (stesso markup, pubblicità finta, navigazione da SPA). Serve ffmpeg per generare il video di prova.
+
+```bash
+npm run finto-youtube        # in un terminale
+```
+
+```bash
+npm run dev:finto-youtube    # in un altro: l'app usa il finto YouTube
+```
+
 L'installer va creato su Windows (o con Wine). In sviluppo, per chiudere l'app usa **Esci → Chiudi l'app**, oppure Alt+F4.
 
 ## Struttura del progetto
@@ -47,6 +59,8 @@ electron/
   preload.ts       API sicura esposta all'interfaccia (window.studio)
   ipc-types.ts     contratto IPC tipizzato condiviso
   settings.ts      impostazioni persistenti (electron-store)
+  youtube.ts       vista di YouTube (WebContentsView), zoom, tasti, foto per i dialog
+  youtube-preload.ts  dentro YouTube: ferma il video al play, rileva pubblicità
 src/
   App.tsx          gestione delle schermate
   screens/         Home, schermate in arrivo
@@ -58,6 +72,19 @@ src/
   styles/          tema scuro, focus giallo, animazioni
 docs/screenshots/  anteprime delle schermate
 ```
+
+### Flusso YouTube
+
+1. Si sceglie una canzone su YouTube (con l'air mouse) e parte il video.
+2. L'app lo ferma subito, lo riporta all'inizio e chiede **"Vuoi registrare?"**.
+3. **Sì, registra** → conto alla rovescia 5-4-3-2-1-VAI! → il video riparte da capo.
+4. **Solo ascolto** → il video riparte e per quel video non chiede più (finché non lo si riapre).
+5. Durante la pubblicità non chiede nulla: aspetta che inizi la canzone.
+6. Indietro torna alla pagina precedente di YouTube; se non c'è, alla Home.
+
+| Vuoi registrare? | Conto alla rovescia |
+|---|---|
+| ![](docs/screenshots/fase2/2-vuoi-registrare.png) | ![](docs/screenshots/fase2/3-conto-alla-rovescia.png) |
 
 ### Telecomando
 
@@ -85,7 +112,7 @@ Ogni dialog intrappola il focus e parte dalla scelta più sicura (es. "Annulla")
 ## Fasi di sviluppo
 
 - [x] 1. Scheletro: Electron + React + TypeScript, schermo intero, Home, pulsante Esci, frecce, toast e dialog
-- [ ] 2. YouTube nel `WebContentsView` con zoom, barre e intercettazione del play
+- [x] 2. YouTube nel `WebContentsView` con zoom, barre e intercettazione del play
 - [ ] 3. Registrazione: VU meter, conto alla rovescia, MediaRecorder, pubblicità
 - [ ] 4. Salvataggio: tastiera a schermo, selettore cartelle, MP3, recupero dei file temporanei
 - [ ] 5. Le mie registrazioni: cartelle, filtri, player

@@ -57,6 +57,11 @@ body {
   box-shadow: var(--focus-ring);
   z-index: 1;
 }
+/* Finestra senza focus (si sta usando YouTube): niente bordo di focus */
+html[data-window-blurred] [data-nav]:focus {
+  transform: none;
+  box-shadow: none;
+}
 /* Variante per elementi piccoli in barre strette: niente ingrandimento eccessivo */
 [data-nav][data-nav-compact]:focus {
   transform: scale(1.04);
@@ -108,4 +113,11 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 1ms !important; transition-duration: 1ms !important; }
+}
+
+@keyframes countdown-pop {
+  0%   { opacity: 0; transform: scale(1.6); }
+  25%  { opacity: 1; transform: scale(1); }
+  80%  { opacity: 1; transform: scale(0.95); }
+  100% { opacity: 0.15; transform: scale(0.85); }
 }
