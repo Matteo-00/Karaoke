@@ -1,0 +1,152 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Nunito Variable', 'Nunito', system-ui, sans-serif;
+  --font-mono: 'Nunito Variable', ui-monospace, monospace;
+
+  --color-night-950: #07071c;
+  --color-night-900: #0c0b2b;
+  --color-night-800: #17134a;
+  --color-stage-700: #3b1d8f;
+  --color-stage-500: #7c3aed;
+  --color-stage-300: #c4b5fd;
+  --color-rec: #ff3355;
+  --color-ok: #22c55e;
+  --color-warn: #facc15;
+  --color-focus: #ffd60a;
+}
+
+/*
+ * Scala unica: a 1366×768 1rem = 16px; a 1920×1080 cresce in proporzione.
+ * Tutte le misure dell'interfaccia sono in rem, così l'app si adatta alla TV.
+ */
+html {
+  font-size: clamp(12px, calc(100vw / 1366 * 16), 32px);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: #fff;
+  background-color: var(--color-night-950);
+  background-image:
+    radial-gradient(ellipse 60% 55% at 18% -5%, rgb(124 58 237 / 0.5), transparent 70%),
+    radial-gradient(ellipse 55% 50% at 88% 105%, rgb(236 72 153 / 0.28), transparent 70%),
+    radial-gradient(ellipse 40% 35% at 50% 50%, rgb(59 130 246 / 0.12), transparent 70%),
+    linear-gradient(160deg, #0a0a2e 0%, #160f4a 55%, #2a0f4f 100%);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  cursor: default;
+}
+
+/* Fasci di luce del "palco", animati molto lentamente (leggeri per l'N150) */
+.stage-lights {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+.stage-lights::before,
+.stage-lights::after {
+  content: '';
+  position: absolute;
+  top: -30%;
+  width: 45%;
+  height: 140%;
+  background: linear-gradient(180deg, rgb(196 181 253 / 0.13), transparent 75%);
+  filter: blur(2.5rem);
+  transform-origin: top center;
+  animation: sway 14s ease-in-out infinite alternate;
+}
+.stage-lights::before {
+  left: 5%;
+  transform: rotate(-18deg);
+}
+.stage-lights::after {
+  right: 5%;
+  transform: rotate(18deg);
+  background: linear-gradient(180deg, rgb(244 114 182 / 0.1), transparent 75%);
+  animation-delay: -7s;
+}
+@keyframes sway {
+  from { rotate: -6deg; opacity: 0.7; }
+  to   { rotate: 6deg;  opacity: 1; }
+}
+
+/* ------------------------------------------------------------ focus telecomando */
+[data-nav] {
+  outline: none;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    background-color 180ms ease,
+    border-color 180ms ease;
+}
+[data-nav]:focus {
+  outline: none;
+  transform: scale(1.05);
+  box-shadow:
+    0 0 0 0.35rem var(--color-focus),
+    0 0 2.5rem 0.6rem rgb(255 214 10 / 0.45);
+  z-index: 1;
+}
+/* Variante per elementi piccoli in barre strette: niente ingrandimento eccessivo */
+[data-nav][data-nav-compact]:focus {
+  transform: scale(1.04);
+}
+
+/* Nel layer "base", così le classi Tailwind (peso, dimensione) hanno la precedenza */
+@layer base {
+  button {
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+  }
+  button:disabled {
+    cursor: default;
+    opacity: 0.45;
+  }
+}
+
+/* ------------------------------------------------------------ animazioni */
+@keyframes pop-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translate(-50%, -1.5rem); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+@keyframes screen-in {
+  from { opacity: 0; transform: translateY(0.75rem); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes rec-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.55; transform: scale(0.82); }
+}
+@keyframes banner-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(250 204 21 / 0); }
+  50%      { box-shadow: 0 0 2rem 0.2rem rgb(250 204 21 / 0.35); }
+}
+.anim-pop { animation: pop-in 220ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+.anim-fade { animation: fade-in 200ms ease both; }
+.anim-screen { animation: screen-in 240ms ease-out both; }
+.anim-rec { animation: rec-pulse 1.2s ease-in-out infinite; }
+.anim-banner { animation: banner-glow 2.4s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; transition-duration: 1ms !important; }
+}
