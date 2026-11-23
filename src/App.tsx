@@ -7,12 +7,12 @@ import { Home } from './screens/Home'
 import { ComingSoon } from './screens/ComingSoon'
 import { useAudioDevices } from './hooks/useAudioDevices'
 import { studio } from './lib/api'
-import { THEMES, type ThemeId } from '../electron/ipc-types'
+import { DAY_NIGHT, LIGHT_THEMES, THEMES, type ThemeId } from '../electron/ipc-types'
 
-/** Applica il tema grafico; in anteprima si può forzare con ?tema=nome */
-function applyTheme(theme: ThemeId): void {
+/** Tema iniziale; in anteprima si può forzare con ?tema=nome */
+function forcedTheme(): ThemeId | null {
   const forced = new URLSearchParams(location.search).get('tema') as ThemeId | null
-  document.documentElement.dataset.theme = forced && THEMES.includes(forced) ? forced : theme
+  return forced && THEMES.includes(forced) ? forced : null
 }
 
 export type Screen = 'home' | 'youtube' | 'recordings'
@@ -25,12 +25,13 @@ export default function App() {
   })
   const [appName, setAppName] = useState('Studio Karaoke')
   const [recordingCount, setRecordingCount] = useState(0)
+  const [theme, setTheme] = useState<ThemeId>(() => forcedTheme() ?? 'ardesia')
   const { mixerConnected } = useAudioDevices()
 
   useEffect(() => {
     studio.getInfo().then((info) => {
       setAppName(info.appName)
-      applyTheme(info.theme)
+      if (!forcedTheme()) setTheme(info.theme)
     })
   }, [])
 
@@ -41,7 +42,25 @@ export default function App() {
     return () => cancelAnimationFrame(id)
   }, [screen])
 
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+  }, [theme])
+
   const goHome = useCallback(() => setScreen('home'), [])
+
+  const partner = DAY_NIGHT[theme]
+  const toggleDayNight = useCallback(() => {
+    if (!partner) return
+    const apply = () => {
+      document.documentElement.dataset.theme = partner
+      setTheme(partner)
+    }
+    // Dissolvenza morbida tra i due temi, se disponibile
+    const doc = document as Document & { startViewTransition?: (cb: () => void) => unknown }
+    if (doc.startViewTransition) doc.startViewTransition(apply)
+    else apply()
+    studio.setTheme(partner)
+  }, [partner])
 
   return (
     <ToastProvider>
@@ -54,6 +73,8 @@ export default function App() {
             mixerConnected={mixerConnected}
             onOpenYouTube={() => setScreen('youtube')}
             onOpenRecordings={() => setScreen('recordings')}
+            isLight={LIGHT_THEMES.includes(theme)}
+            onToggleDayNight={partner ? toggleDayNight : undefined}
           />
         )}
         {screen === 'youtube' && (

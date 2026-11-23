@@ -223,6 +223,48 @@
   --warn-strong: #fff;
 }
 
+/* ======================================================= 4b · Ardesia giorno (stessi colori, chiaro) */
+[data-theme='ardesia-giorno'] {
+  --bg: linear-gradient(180deg, #f4f6f9 0%, #e9edf2 100%);
+  --lights: none;
+  --text: #1f2633;
+  --muted: #5f6b7d;
+  --accent-ink: #1f8f83;
+  --surface: #ffffff;
+  --surface-border: #d5dbe4;
+  --header-bg: #ffffff;
+  --header-border: #dde2ea;
+  --focus-ring: 0 0 0 0.25rem #f4f6f9, 0 0 0 0.6rem #f0a500;
+  --card1: #ec5a62;
+  --card1-text: #fff;
+  --card2: #2fa294;
+  --card2-text: #fff;
+  --card-border: transparent;
+  --card-shadow: 0 1.2rem 2.4rem -1.4rem rgb(31 38 51 / 0.45);
+  --ring-bg: rgb(255 255 255 / 0.18);
+  --ring-border: rgb(255 255 255 / 0.4);
+  --badge-bg: #fff;
+  --badge-fg: #ec5a62;
+  --gloss: 0;
+  --logo: #ec5a62;
+  --logo-shadow: none;
+  --clock-shadow: none;
+  --power: #e04851;
+  --btn-danger: #ec5a62;
+  --btn-accent: #2fa294;
+  --btn-success: #2fa294;
+  --btn-on-color: #fff;
+  --btn-neutral: #eef1f5;
+  --btn-neutral-text: #1f2633;
+  --dialog-bg: #ffffff;
+  --dialog-border: #dde2ea;
+  --overlay: rgb(31 38 51 / 0.45);
+  --warn-bg: #fff4d1;
+  --warn-border: #f0a500;
+  --warn-text: #6e4f00;
+  --warn-strong: #1f2633;
+}
+
 /* ======================================================= 5 · Vinile (retrò anni '70) */
 [data-theme='vinile'] {
   --bg:
@@ -340,4 +382,10 @@
 @keyframes sway {
   from { rotate: -6deg; opacity: 0.7; }
   to   { rotate: 6deg;  opacity: 1; }
+}
+
+/* Passaggio morbido tra giorno e notte */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 350ms;
 }

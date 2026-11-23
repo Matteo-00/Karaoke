@@ -4,11 +4,13 @@ App desktop per Windows 11 che permette di cantare sulle basi di YouTube e regis
 
 > Stato: **fase 1 completata** (scheletro, Home, pulsante Esci, navigazione col telecomando, dialog e toast).
 
-![Home](docs/screenshots/1-home.png)
+Tema **Ardesia**, con il pulsante in Home per passare da notte a giorno:
 
-| Mixer scollegato | Dialog "Esci" |
+| Notte | Giorno |
 |---|---|
-| ![](docs/screenshots/2-home-mixer-scollegato.png) | ![](docs/screenshots/4-dialog-esci.png) |
+| ![](docs/screenshots/1-home.png) | ![](docs/screenshots/1-home-giorno.png) |
+
+Gli altri temi (palco, corallo, cielo, salvia, vinile) sono in `docs/screenshots/temi/` e si scelgono con l'impostazione `tema`.
 
 ## Comandi
 

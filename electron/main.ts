@@ -6,7 +6,7 @@
 import { app, BrowserWindow, ipcMain, session } from 'electron'
 import { execFile } from 'node:child_process'
 import { join } from 'node:path'
-import { IPC, type AppInfo } from './ipc-types'
+import { IPC, THEMES, type AppInfo, type ThemeId } from './ipc-types'
 import { settings } from './settings'
 
 // __dirname è fornito da electron-vite anche nel bundle ESM
@@ -177,6 +177,10 @@ function registerIpc(): void {
         }
       })
     })
+  })
+
+  ipcMain.handle(IPC.setTheme, (_e, theme: ThemeId) => {
+    if (THEMES.includes(theme)) settings.set('theme', theme)
   })
 
   // Fase 1: l'indice delle registrazioni arriva nelle fasi 4-5

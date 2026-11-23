@@ -16,7 +16,7 @@ const defaults: Settings = {
   appName: 'Studio Karaoke',
   autoStart: true,
   mixerLabelHint: 'USB Audio',
-  theme: 'palco'
+  theme: 'ardesia'
 }
 
 export const settings = new Store<Settings>({ name: 'impostazioni', defaults })

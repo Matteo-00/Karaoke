@@ -4,6 +4,7 @@ import { AppLogo } from '../components/AppLogo'
 import { Clock } from '../components/Clock'
 import { ExitButton } from '../components/ExitButton'
 import { StatusBanner } from '../components/StatusBanner'
+import { DayNightButton } from '../components/DayNightButton'
 
 interface Props {
   appName: string
@@ -11,10 +12,21 @@ interface Props {
   mixerConnected: boolean | null
   onOpenYouTube: () => void
   onOpenRecordings: () => void
+  /** Pulsante Giorno/Notte: assente se il tema non ha la coppia */
+  isLight: boolean
+  onToggleDayNight?: () => void
 }
 
 /** Schermata principale: due riquadri enormi, orologio e pulsante Esci */
-export function Home({ appName, recordingCount, mixerConnected, onOpenYouTube, onOpenRecordings }: Props) {
+export function Home({
+  appName,
+  recordingCount,
+  mixerConnected,
+  onOpenYouTube,
+  onOpenRecordings,
+  isLight,
+  onToggleDayNight
+}: Props) {
   const countText =
     recordingCount === 0
       ? 'Ancora nessuna canzone'
@@ -28,7 +40,8 @@ export function Home({ appName, recordingCount, mixerConnected, onOpenYouTube, o
       <header className="grid grid-cols-[1fr_auto_1fr] items-center">
         <AppLogo name={appName} />
         <Clock />
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-4">
+          {onToggleDayNight && <DayNightButton isLight={isLight} onToggle={onToggleDayNight} />}
           <ExitButton />
         </div>
       </header>
