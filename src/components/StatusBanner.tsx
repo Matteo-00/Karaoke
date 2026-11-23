@@ -9,20 +9,20 @@ export function StatusBanner({ mixerConnected }: { mixerConnected: boolean | nul
     return (
       <div
         role="alert"
-        className="anim-banner anim-fade flex items-center gap-5 rounded-[1.5rem] border-2 border-warn bg-[#3d3207]/90 px-8 py-4 text-[1.75rem] font-extrabold text-[#fde68a]"
+        className="t-warn anim-fade flex items-center gap-5 rounded-[1.5rem] border-2 px-8 py-4 text-[1.75rem] font-extrabold"
       >
-        <Cable className="size-[2.6rem] shrink-0 text-warn" strokeWidth={2.4} />
+        <Cable className="size-[2.6rem] shrink-0" strokeWidth={2.4} />
         <span>
-          Il mixer non è collegato: <span className="text-white">controlla il cavo USB</span>
+          Il mixer non è collegato: <span className="t-warn-strong">controlla il cavo USB</span>
         </span>
       </div>
     )
   }
   return (
-    <div className="flex items-center gap-4 text-[1.5rem] font-bold text-white/55">
+    <div className="t-muted flex items-center gap-4 text-[1.5rem] font-bold">
       <Gamepad2 className="size-[2rem]" />
       <span>
-        Usa le <b className="text-white/80">frecce</b> del telecomando e premi <b className="text-white/80">OK</b>
+        Usa le <b style={{ color: 'var(--text)' }}>frecce</b> del telecomando e premi <b style={{ color: 'var(--text)' }}>OK</b>
       </span>
     </div>
   )

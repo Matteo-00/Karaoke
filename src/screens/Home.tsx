@@ -38,12 +38,11 @@ export function Home({ appName, recordingCount, mixerConnected, onOpenYouTube, o
         <HomeCard
           autoFocus
           onClick={onOpenYouTube}
-          gradient="from-[#ff3b5c] via-[#e11d74] to-[#9d174d]"
-          glow="rgba(255,51,85,0.45)"
+          tone="t-card1"
           icon={
             <div className="relative">
-              <Play className="size-[5.5rem] translate-x-[0.4rem] fill-white" strokeWidth={0} />
-              <span className="absolute -right-[2.6rem] -bottom-[1.6rem] flex size-[3.6rem] items-center justify-center rounded-full border-[0.25rem] border-[#c0175e] bg-white text-[#e11d74]">
+              <Play className="size-[5.5rem] translate-x-[0.4rem] fill-current" strokeWidth={0} />
+              <span className="t-badge absolute -right-[2.6rem] -bottom-[1.6rem] flex size-[3.6rem] items-center justify-center rounded-full border-[0.25rem]">
                 <Mic className="size-[2rem]" strokeWidth={2.8} />
               </span>
             </div>
@@ -53,8 +52,7 @@ export function Home({ appName, recordingCount, mixerConnected, onOpenYouTube, o
         />
         <HomeCard
           onClick={onOpenRecordings}
-          gradient="from-[#8b5cf6] via-[#6d28d9] to-[#3b1d8f]"
-          glow="rgba(139,92,246,0.45)"
+          tone="t-card2"
           icon={<Disc3 className="size-[6.2rem]" strokeWidth={1.8} />}
           title="Le mie registrazioni"
           subtitle={countText}
@@ -72,16 +70,15 @@ function HomeCard({
   icon,
   title,
   subtitle,
-  gradient,
-  glow,
+  tone,
   autoFocus,
   onClick
 }: {
   icon: ReactNode
   title: string
   subtitle: string
-  gradient: string
-  glow: string
+  /** Classe del tema: t-card1 o t-card2 */
+  tone: string
   autoFocus?: boolean
   onClick: () => void
 }) {
@@ -91,18 +88,17 @@ function HomeCard({
       data-nav=""
       data-autofocus={autoFocus ? '' : undefined}
       onClick={onClick}
-      style={{ ['--glow' as string]: glow }}
-      className={`group relative flex h-[26rem] w-[33rem] flex-col items-center justify-center gap-7 overflow-hidden rounded-[2.5rem] border-[0.2rem] border-white/25 bg-gradient-to-br ${gradient} shadow-[0_1.5rem_4rem_-1rem_var(--glow)]`}
+      className={`group relative flex h-[26rem] w-[33rem] flex-col items-center justify-center gap-7 overflow-hidden rounded-[2.5rem] border-[0.2rem] ${tone}`}
     >
       {/* Riflesso lucido in alto */}
-      <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent" />
-      <span className="pointer-events-none absolute -top-[6rem] -right-[6rem] size-[16rem] rounded-full bg-white/10 blur-2xl" />
-      <span className="relative flex size-[11rem] items-center justify-center rounded-full border-[0.2rem] border-white/30 bg-black/20 shadow-inner">
+      <span className="t-gloss pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent" />
+      <span className="t-gloss pointer-events-none absolute -top-[6rem] -right-[6rem] size-[16rem] rounded-full bg-white/10 blur-2xl" />
+      <span className="t-ring relative flex size-[11rem] items-center justify-center rounded-full border-[0.2rem]">
         {icon}
       </span>
       <span className="relative flex flex-col items-center gap-2">
-        <span className="text-[2.9rem] leading-none font-black drop-shadow-md">{title}</span>
-        <span className="text-[1.6rem] font-bold text-white/85">{subtitle}</span>
+        <span className="text-[2.9rem] leading-none font-black">{title}</span>
+        <span className="text-[1.6rem] font-bold opacity-85">{subtitle}</span>
       </span>
     </button>
   )

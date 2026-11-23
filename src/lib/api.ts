@@ -12,7 +12,7 @@ declare global {
  */
 const browserMock: StudioApi = {
   async getInfo() {
-    return { appName: 'Studio Karaoke', version: '0.1.0', isDev: true, platform: 'linux' }
+    return { appName: 'Studio Karaoke', version: '0.1.0', isDev: true, platform: 'linux', theme: 'palco' }
   },
   async quitApp() {
     console.info('[anteprima] chiudi app')

@@ -16,14 +16,14 @@ export function Clock({ compact = false }: { compact?: boolean }) {
   }, [])
 
   if (compact) {
-    return <div className="text-[1.75rem] font-extrabold tabular-nums text-white/90">{timeFmt.format(now)}</div>
+    return <div className="text-[1.75rem] font-extrabold tabular-nums">{timeFmt.format(now)}</div>
   }
   return (
     <div className="flex flex-col items-center leading-none">
-      <div className="text-[4rem] font-black tracking-tight tabular-nums drop-shadow-[0_0.2rem_1.2rem_rgba(167,139,250,0.55)]">
+      <div className="t-clock text-[4rem] font-black tracking-tight tabular-nums">
         {timeFmt.format(now)}
       </div>
-      <div className="mt-2 text-[1.5rem] font-bold text-stage-300">{capitalize(dateFmt.format(now))}</div>
+      <div className="t-accent-ink mt-2 text-[1.5rem] font-bold">{capitalize(dateFmt.format(now))}</div>
     </div>
   )
 }

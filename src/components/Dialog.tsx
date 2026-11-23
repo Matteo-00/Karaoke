@@ -15,10 +15,11 @@ interface Props {
   width?: 'md' | 'lg'
 }
 
+// Colori dal tema; il "tono" cambia solo il colore dell'icona
 const tones = {
-  default: 'from-[#2a1d6e] to-[#160f45] border-stage-300/30',
-  danger: 'from-[#4a1430] to-[#1d0b2c] border-rec/40',
-  warn: 'from-[#4a3a10] to-[#1d160b] border-warn/40'
+  default: '',
+  danger: '[&_.dialog-icon]:text-rec',
+  warn: '[&_.dialog-icon]:text-warn'
 }
 
 /**
@@ -48,21 +49,21 @@ export function Dialog({ title, icon, children, actions, onClose, tone = 'defaul
   }, [])
 
   return createPortal(
-    <div className="anim-fade fixed inset-0 z-50 flex items-center justify-center bg-[#05041a]/80 backdrop-blur-sm">
+    <div className="t-overlay anim-fade fixed inset-0 z-50 flex items-center justify-center">
       <div
         ref={ref}
         data-nav-scope=""
         role="dialog"
         aria-modal="true"
-        className={`anim-pop flex flex-col items-center gap-8 rounded-[2.25rem] border-2 bg-gradient-to-b px-14 py-12 text-center shadow-2xl shadow-black/60 ${tones[tone]} ${width === 'lg' ? 'w-[68rem]' : 'w-[56rem]'} max-w-[94vw]`}
+        className={`anim-pop flex flex-col items-center gap-8 t-dialog rounded-[2.25rem] border-2 px-14 py-12 text-center shadow-2xl shadow-black/30 ${tones[tone]} ${width === 'lg' ? 'w-[68rem]' : 'w-[56rem]'} max-w-[94vw]`}
       >
         {icon && (
-          <div className="flex size-[6rem] items-center justify-center rounded-full bg-white/10 [&>svg]:size-[3.4rem]">
+          <div className="dialog-icon t-btn-neutral flex size-[6rem] items-center justify-center rounded-full [&>svg]:size-[3.4rem]">
             {icon}
           </div>
         )}
         <h2 className="text-[2.75rem] leading-tight font-black">{title}</h2>
-        {children && <div className="text-[1.75rem] leading-snug text-white/85">{children}</div>}
+        {children && <div className="t-muted text-[1.75rem] leading-snug">{children}</div>}
         {actions && <div className="mt-2 flex w-full flex-wrap justify-center gap-6">{actions}</div>}
       </div>
     </div>,

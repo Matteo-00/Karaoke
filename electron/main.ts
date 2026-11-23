@@ -152,7 +152,8 @@ function registerIpc(): void {
     appName: settings.get('appName'),
     version: app.getVersion(),
     isDev,
-    platform: process.platform
+    platform: process.platform,
+    theme: settings.get('theme')
   }))
 
   ipcMain.handle(IPC.quitApp, () => {

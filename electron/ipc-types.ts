@@ -10,7 +10,12 @@ export interface AppInfo {
   /** true quando l'app gira dal sorgente (npm run dev) */
   isDev: boolean
   platform: NodeJS.Platform
+  /** Tema grafico (vedi src/styles/themes.css) */
+  theme: ThemeId
 }
+
+export const THEMES = ['palco', 'corallo', 'cielo', 'salvia', 'ardesia', 'vinile'] as const
+export type ThemeId = (typeof THEMES)[number]
 
 export interface StudioApi {
   getInfo(): Promise<AppInfo>

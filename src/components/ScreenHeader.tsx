@@ -6,13 +6,13 @@ import { Clock } from './Clock'
 /** Barra superiore sottile delle schermate interne: ← Home · titolo · ora · Esci */
 export function ScreenHeader({ title, icon, onHome }: { title: ReactNode; icon?: ReactNode; onHome: () => void }) {
   return (
-    <header className="flex h-[5.5rem] shrink-0 items-center gap-6 border-b-2 border-white/10 bg-night-900/70 px-[1.5rem] backdrop-blur">
+    <header className="t-header flex h-[5.5rem] shrink-0 items-center gap-6 border-b-2 px-[1.5rem]">
       <button
         type="button"
         data-nav=""
         data-nav-compact=""
         onClick={onHome}
-        className="flex h-[4rem] items-center gap-3 rounded-[1.2rem] border-2 border-white/25 bg-white/10 px-6 text-[1.6rem] font-extrabold"
+        className="t-surface flex h-[4rem] items-center gap-3 rounded-[1.2rem] border-2 px-6 text-[1.6rem] font-extrabold"
       >
         <ArrowLeft className="size-[2rem]" strokeWidth={3} />
         Home

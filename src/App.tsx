@@ -7,6 +7,13 @@ import { Home } from './screens/Home'
 import { ComingSoon } from './screens/ComingSoon'
 import { useAudioDevices } from './hooks/useAudioDevices'
 import { studio } from './lib/api'
+import { THEMES, type ThemeId } from '../electron/ipc-types'
+
+/** Applica il tema grafico; in anteprima si può forzare con ?tema=nome */
+function applyTheme(theme: ThemeId): void {
+  const forced = new URLSearchParams(location.search).get('tema') as ThemeId | null
+  document.documentElement.dataset.theme = forced && THEMES.includes(forced) ? forced : theme
+}
 
 export type Screen = 'home' | 'youtube' | 'recordings'
 
@@ -21,7 +28,10 @@ export default function App() {
   const { mixerConnected } = useAudioDevices()
 
   useEffect(() => {
-    studio.getInfo().then((info) => setAppName(info.appName))
+    studio.getInfo().then((info) => {
+      setAppName(info.appName)
+      applyTheme(info.theme)
+    })
   }, [])
 
   useEffect(() => {
@@ -49,7 +59,7 @@ export default function App() {
         {screen === 'youtube' && (
           <ComingSoon
             title="YouTube – Canta"
-            icon={<MonitorPlay className="text-rec" />}
+            icon={<MonitorPlay className="t-power" />}
             phase="fase 2 (YouTube) e fase 3 (registrazione)"
             onHome={goHome}
           />
@@ -57,7 +67,7 @@ export default function App() {
         {screen === 'recordings' && (
           <ComingSoon
             title="Le mie registrazioni"
-            icon={<Disc3 className="text-stage-300" />}
+            icon={<Disc3 className="t-accent-ink" />}
             phase="fase 5"
             onHome={goHome}
           />

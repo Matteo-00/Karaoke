@@ -23,10 +23,10 @@ export function ComingSoon({
     <div className="anim-screen relative z-10 flex h-full flex-col">
       <ScreenHeader title={title} icon={icon} onHome={onHome} />
       <main className="flex flex-1 flex-col items-center justify-center gap-8 text-center">
-        <Hammer className="size-[6rem] text-stage-300" />
+        <Hammer className="t-accent-ink size-[6rem]" />
         <div className="text-[3rem] font-black">Ci stiamo lavorando!</div>
-        <div className="max-w-[50rem] text-[1.75rem] text-white/75">
-          Questa schermata arriva nella <b className="text-white">{phase}</b>.
+        <div className="t-muted max-w-[50rem] text-[1.75rem]">
+          Questa schermata arriva nella <b style={{ color: 'var(--text)' }}>{phase}</b>.
         </div>
         <Button variant="accent" icon={<House />} autoFocusNav onClick={onHome}>
           Torna alla Home

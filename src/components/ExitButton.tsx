@@ -31,19 +31,19 @@ export function ExitButton({ compact = false }: { compact?: boolean }) {
         data-nav=""
         data-nav-compact=""
         onClick={() => setOpen(true)}
-        className={`flex flex-col items-center justify-center rounded-[1.4rem] border-2 border-white/20 bg-white/10 font-extrabold ${
+        className={`t-surface flex flex-col items-center justify-center rounded-[1.4rem] border-2 font-extrabold ${
           compact ? 'h-[4rem] min-w-[7.5rem] flex-row gap-2 px-4 text-[1.4rem]' : 'h-[6.5rem] w-[7.5rem] gap-1 text-[1.4rem]'
         }`}
         aria-label="Esci"
       >
-        <Power className={compact ? 'size-[1.9rem] text-[#ff8095]' : 'size-[2.8rem] text-[#ff8095]'} strokeWidth={2.6} />
+        <Power className={compact ? 't-power size-[1.9rem]' : 't-power size-[2.8rem]'} strokeWidth={2.6} />
         Esci
       </button>
 
       {open && (
         <Dialog
           title="Vuoi uscire?"
-          icon={<Power className="text-[#ff8095]" />}
+          icon={<Power className="t-power" />}
           onClose={() => setOpen(false)}
           width="lg"
           actions={
@@ -60,15 +60,15 @@ export function ExitButton({ compact = false }: { compact?: boolean }) {
             </>
           }
         >
-          Per tornare a cantare premi <b className="text-white">Annulla</b>.
+          Per tornare a cantare premi <b style={{ color: 'var(--text)' }}>Annulla</b>.
         </Dialog>
       )}
 
       {shuttingDown && (
-        <div className="anim-fade fixed inset-0 z-[70] flex flex-col items-center justify-center gap-6 bg-night-950">
-          <PowerOff className="size-[7rem] text-[#ff8095]" />
+        <div className="t-bg anim-fade fixed inset-0 z-[70] flex flex-col items-center justify-center gap-6">
+          <PowerOff className="t-power size-[7rem]" />
           <div className="text-[3.5rem] font-black">Sto spegnendo il PC…</div>
-          <div className="text-[2rem] text-stage-300">Arrivederci! 👋</div>
+          <div className="t-accent-ink text-[2rem]">Arrivederci! 👋</div>
         </div>
       )}
     </>

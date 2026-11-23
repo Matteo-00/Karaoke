@@ -2,12 +2,13 @@ import type { ButtonHTMLAttributes, ReactNode } from 'react'
 
 export type ButtonVariant = 'neutral' | 'danger' | 'success' | 'accent' | 'ghost'
 
+// I colori vengono dal tema attivo (src/styles/themes.css)
 const variants: Record<ButtonVariant, string> = {
-  neutral: 'bg-white/12 border-white/25 hover:bg-white/18',
-  danger: 'bg-gradient-to-b from-[#ff4d6a] to-[#d61f45] border-[#ff8095]/60',
-  success: 'bg-gradient-to-b from-[#2ee06e] to-[#16a34a] border-[#86efac]/60',
-  accent: 'bg-gradient-to-b from-[#8b5cf6] to-[#6d28d9] border-[#c4b5fd]/60',
-  ghost: 'bg-transparent border-white/20 hover:bg-white/10'
+  neutral: 't-btn-neutral',
+  danger: 't-btn-danger',
+  success: 't-btn-success',
+  accent: 't-btn-accent',
+  ghost: 't-surface bg-transparent'
 }
 
 interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -38,7 +39,7 @@ export function Button({
       type="button"
       data-nav=""
       data-autofocus={autoFocusNav ? '' : undefined}
-      className={`inline-flex items-center justify-center border-2 font-extrabold text-white shadow-lg shadow-black/30 ${sizing} ${variants[variant]} ${className}`}
+      className={`inline-flex items-center justify-center border-2 font-extrabold shadow-md shadow-black/15 ${sizing} ${variants[variant]} ${className}`}
       {...rest}
     >
       {icon && <span className="flex shrink-0 items-center [&>svg]:size-[1.15em]">{icon}</span>}

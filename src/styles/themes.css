@@ -1,0 +1,343 @@
+/*
+ * Temi grafici di Studio Karaoke.
+ * Il tema si sceglie con l'attributo data-theme su <html> (impostazione "tema").
+ * I componenti usano solo le classi .t-* qui sotto, mai colori fissi.
+ */
+
+/* ======================================================= 0 · Palco (originale, scuro) */
+:root,
+[data-theme='palco'] {
+  --bg:
+    radial-gradient(ellipse 60% 55% at 18% -5%, rgb(124 58 237 / 0.5), transparent 70%),
+    radial-gradient(ellipse 55% 50% at 88% 105%, rgb(236 72 153 / 0.28), transparent 70%),
+    linear-gradient(160deg, #0a0a2e 0%, #160f4a 55%, #2a0f4f 100%);
+  --lights: block;
+  --text: #ffffff;
+  --muted: rgb(255 255 255 / 0.6);
+  --accent-ink: #c4b5fd;
+  --surface: rgb(255 255 255 / 0.1);
+  --surface-border: rgb(255 255 255 / 0.22);
+  --header-bg: rgb(12 11 43 / 0.75);
+  --header-border: rgb(255 255 255 / 0.1);
+  --focus-ring: 0 0 0 0.35rem #ffd60a, 0 0 2.5rem 0.6rem rgb(255 214 10 / 0.45);
+  --card1: linear-gradient(135deg, #ff3b5c, #e11d74 55%, #9d174d);
+  --card1-text: #fff;
+  --card2: linear-gradient(135deg, #8b5cf6, #6d28d9 55%, #3b1d8f);
+  --card2-text: #fff;
+  --card-border: rgb(255 255 255 / 0.25);
+  --card-shadow: 0 1.5rem 4rem -1rem rgb(168 85 247 / 0.45);
+  --ring-bg: rgb(0 0 0 / 0.2);
+  --ring-border: rgb(255 255 255 / 0.3);
+  --badge-bg: #fff;
+  --badge-fg: #e11d74;
+  --gloss: 1;
+  --logo: linear-gradient(135deg, #ff4d6a, #7c3aed);
+  --logo-shadow: 0 0 1.8rem rgb(236 72 153 / 0.55);
+  --clock-shadow: 0 0.2rem 1.2rem rgb(167 139 250 / 0.55);
+  --power: #ff8095;
+  --btn-danger: linear-gradient(#ff4d6a, #d61f45);
+  --btn-accent: linear-gradient(#8b5cf6, #6d28d9);
+  --btn-success: linear-gradient(#2ee06e, #16a34a);
+  --btn-on-color: #fff;
+  --btn-neutral: rgb(255 255 255 / 0.12);
+  --btn-neutral-text: #fff;
+  --dialog-bg: linear-gradient(#2a1d6e, #160f45);
+  --dialog-border: rgb(196 181 253 / 0.3);
+  --overlay: rgb(5 4 26 / 0.8);
+  --warn-bg: rgb(61 50 7 / 0.9);
+  --warn-border: #facc15;
+  --warn-text: #fde68a;
+  --warn-strong: #fff;
+}
+
+/* ======================================================= 1 · Latte & Corallo (chiaro, caldo) */
+[data-theme='corallo'] {
+  --bg:
+    radial-gradient(ellipse 50% 45% at 12% 0%, #ffe4d6 0%, transparent 70%),
+    radial-gradient(ellipse 45% 40% at 95% 100%, #d7f2ee 0%, transparent 70%),
+    #fbf7f2;
+  --lights: none;
+  --text: #2b2433;
+  --muted: #7a7084;
+  --accent-ink: #e0614f;
+  --surface: #ffffff;
+  --surface-border: #ece4dc;
+  --header-bg: rgb(255 255 255 / 0.85);
+  --header-border: #efe7df;
+  --focus-ring: 0 0 0 0.25rem #fbf7f2, 0 0 0 0.6rem #2b2433;
+  --card1: linear-gradient(150deg, #ff8a70, #ff5f4d);
+  --card1-text: #fff;
+  --card2: linear-gradient(150deg, #3cc2b4, #1f9e92);
+  --card2-text: #fff;
+  --card-border: transparent;
+  --card-shadow: 0 1.2rem 2.5rem -1.2rem rgb(43 36 51 / 0.35);
+  --ring-bg: rgb(255 255 255 / 0.22);
+  --ring-border: rgb(255 255 255 / 0.45);
+  --badge-bg: #fff;
+  --badge-fg: #ff5f4d;
+  --gloss: 0;
+  --logo: linear-gradient(135deg, #ff8a70, #ff5f4d);
+  --logo-shadow: 0 0.6rem 1.4rem -0.4rem rgb(255 95 77 / 0.6);
+  --clock-shadow: none;
+  --power: #ff5f4d;
+  --btn-danger: #ff5f4d;
+  --btn-accent: #2b2433;
+  --btn-success: #1f9e92;
+  --btn-on-color: #fff;
+  --btn-neutral: #f3ede6;
+  --btn-neutral-text: #2b2433;
+  --dialog-bg: #ffffff;
+  --dialog-border: #efe7df;
+  --overlay: rgb(43 36 51 / 0.45);
+  --warn-bg: #fff4d1;
+  --warn-border: #f5b700;
+  --warn-text: #7a5600;
+  --warn-strong: #2b2433;
+}
+
+/* ======================================================= 2 · Cielo (chiaro, fresco) */
+[data-theme='cielo'] {
+  --bg: linear-gradient(180deg, #e8f3ff 0%, #f6faff 60%, #ffffff 100%);
+  --lights: none;
+  --text: #0f2747;
+  --muted: #5f7493;
+  --accent-ink: #2f6fe4;
+  --surface: #ffffff;
+  --surface-border: #d6e4f5;
+  --header-bg: rgb(255 255 255 / 0.9);
+  --header-border: #dbe7f6;
+  --focus-ring: 0 0 0 0.25rem #ffffff, 0 0 0 0.6rem #ff9f1c;
+  --card1: linear-gradient(160deg, #ff6b6b, #f2434e);
+  --card1-text: #fff;
+  --card2: linear-gradient(160deg, #4f8cff, #2f6fe4);
+  --card2-text: #fff;
+  --card-border: transparent;
+  --card-shadow: 0 1.4rem 2.8rem -1.4rem rgb(15 39 71 / 0.4);
+  --ring-bg: rgb(255 255 255 / 0.2);
+  --ring-border: rgb(255 255 255 / 0.5);
+  --badge-bg: #fff;
+  --badge-fg: #f2434e;
+  --gloss: 0.6;
+  --logo: linear-gradient(135deg, #4f8cff, #2f6fe4);
+  --logo-shadow: 0 0.6rem 1.4rem -0.4rem rgb(47 111 228 / 0.55);
+  --clock-shadow: none;
+  --power: #f2434e;
+  --btn-danger: #f2434e;
+  --btn-accent: #2f6fe4;
+  --btn-success: #18a957;
+  --btn-on-color: #fff;
+  --btn-neutral: #eef4fc;
+  --btn-neutral-text: #0f2747;
+  --dialog-bg: #ffffff;
+  --dialog-border: #dbe7f6;
+  --overlay: rgb(15 39 71 / 0.4);
+  --warn-bg: #fff6d6;
+  --warn-border: #ffb703;
+  --warn-text: #7a5200;
+  --warn-strong: #0f2747;
+}
+
+/* ======================================================= 3 · Salvia & Terracotta (naturale) */
+[data-theme='salvia'] {
+  --bg:
+    radial-gradient(ellipse 55% 50% at 100% 0%, #e3e9dc 0%, transparent 70%),
+    #f2efe6;
+  --lights: none;
+  --text: #2e3a30;
+  --muted: #76806f;
+  --accent-ink: #b8603f;
+  --surface: #fbf9f3;
+  --surface-border: #ddd8c9;
+  --header-bg: rgb(251 249 243 / 0.92);
+  --header-border: #e2ddcf;
+  --focus-ring: 0 0 0 0.25rem #f2efe6, 0 0 0 0.6rem #2e3a30;
+  --card1: #d0704d;
+  --card1-text: #fff;
+  --card2: #6e9a7e;
+  --card2-text: #fff;
+  --card-border: transparent;
+  --card-shadow: 0 1rem 2rem -1rem rgb(46 58 48 / 0.35);
+  --ring-bg: rgb(255 255 255 / 0.18);
+  --ring-border: rgb(255 255 255 / 0.4);
+  --badge-bg: #fbf9f3;
+  --badge-fg: #d0704d;
+  --gloss: 0;
+  --logo: #d0704d;
+  --logo-shadow: none;
+  --clock-shadow: none;
+  --power: #c0573a;
+  --btn-danger: #c0573a;
+  --btn-accent: #4f7a60;
+  --btn-success: #4f7a60;
+  --btn-on-color: #fff;
+  --btn-neutral: #ebe7da;
+  --btn-neutral-text: #2e3a30;
+  --dialog-bg: #fbf9f3;
+  --dialog-border: #e2ddcf;
+  --overlay: rgb(46 58 48 / 0.45);
+  --warn-bg: #fbefc9;
+  --warn-border: #d9a520;
+  --warn-text: #6e5410;
+  --warn-strong: #2e3a30;
+}
+
+/* ======================================================= 4 · Ardesia (scuro morbido, piatto) */
+[data-theme='ardesia'] {
+  --bg: linear-gradient(180deg, #232a37 0%, #1b212c 100%);
+  --lights: none;
+  --text: #eef1f6;
+  --muted: #9aa5b8;
+  --accent-ink: #7fd8cc;
+  --surface: #2c3443;
+  --surface-border: #3a4456;
+  --header-bg: #1f2531;
+  --header-border: #2f3746;
+  --focus-ring: 0 0 0 0.25rem #1b212c, 0 0 0 0.6rem #ffd166;
+  --card1: #f0626a;
+  --card1-text: #fff;
+  --card2: #35a99c;
+  --card2-text: #fff;
+  --card-border: transparent;
+  --card-shadow: 0 1.2rem 2.5rem -1.2rem rgb(0 0 0 / 0.6);
+  --ring-bg: rgb(255 255 255 / 0.16);
+  --ring-border: rgb(255 255 255 / 0.3);
+  --badge-bg: #fff;
+  --badge-fg: #f0626a;
+  --gloss: 0;
+  --logo: #f0626a;
+  --logo-shadow: none;
+  --clock-shadow: none;
+  --power: #ff8a8f;
+  --btn-danger: #f0626a;
+  --btn-accent: #35a99c;
+  --btn-success: #35a99c;
+  --btn-on-color: #fff;
+  --btn-neutral: #39424f;
+  --btn-neutral-text: #eef1f6;
+  --dialog-bg: #262d3a;
+  --dialog-border: #3a4456;
+  --overlay: rgb(10 13 19 / 0.7);
+  --warn-bg: #3b3420;
+  --warn-border: #ffd166;
+  --warn-text: #ffe29a;
+  --warn-strong: #fff;
+}
+
+/* ======================================================= 5 · Vinile (retrò anni '70) */
+[data-theme='vinile'] {
+  --bg:
+    repeating-radial-gradient(circle at 105% 115%, transparent 0 1.1rem, rgb(58 31 29 / 0.035) 1.1rem 1.25rem),
+    #fbf1dc;
+  --lights: none;
+  --text: #3a1f1d;
+  --muted: #8a6a5c;
+  --accent-ink: #c0392b;
+  --surface: #fffaf0;
+  --surface-border: #ead9b8;
+  --header-bg: rgb(255 250 240 / 0.92);
+  --header-border: #ecdcbc;
+  --focus-ring: 0 0 0 0.25rem #fbf1dc, 0 0 0 0.6rem #1d3557;
+  --card1: #c0392b;
+  --card1-text: #fffaf0;
+  --card2: #e9a23b;
+  --card2-text: #3a1f1d;
+  --card-border: #3a1f1d;
+  --card-shadow: 0.6rem 0.6rem 0 0 #3a1f1d;
+  --ring-bg: rgb(255 250 240 / 0.2);
+  --ring-border: rgb(58 31 29 / 0.35);
+  --badge-bg: #fffaf0;
+  --badge-fg: #c0392b;
+  --gloss: 0;
+  --logo: #c0392b;
+  --logo-shadow: 0.25rem 0.25rem 0 0 #3a1f1d;
+  --clock-shadow: none;
+  --power: #c0392b;
+  --btn-danger: #c0392b;
+  --btn-accent: #1d3557;
+  --btn-success: #2a7f62;
+  --btn-on-color: #fffaf0;
+  --btn-neutral: #f3e4c4;
+  --btn-neutral-text: #3a1f1d;
+  --dialog-bg: #fffaf0;
+  --dialog-border: #3a1f1d;
+  --overlay: rgb(58 31 29 / 0.45);
+  --warn-bg: #fde7a8;
+  --warn-border: #3a1f1d;
+  --warn-text: #5c3a12;
+  --warn-strong: #3a1f1d;
+}
+
+/* ======================================================= classi usate dai componenti */
+.t-muted { color: var(--muted); }
+.t-accent-ink { color: var(--accent-ink); }
+.t-power { color: var(--power); }
+.t-surface {
+  background: var(--surface);
+  border-color: var(--surface-border);
+  color: var(--text);
+}
+.t-header {
+  background: var(--header-bg);
+  border-color: var(--header-border);
+}
+.t-card1 { background: var(--card1); color: var(--card1-text); }
+.t-card2 { background: var(--card2); color: var(--card2-text); }
+.t-card1, .t-card2 {
+  border-color: var(--card-border);
+  box-shadow: var(--card-shadow);
+}
+.t-ring { background: var(--ring-bg); border-color: var(--ring-border); }
+.t-badge { background: var(--badge-bg); color: var(--badge-fg); border-color: var(--badge-bg); }
+.t-gloss { opacity: var(--gloss); }
+.t-logo { background: var(--logo); box-shadow: var(--logo-shadow); color: #fff; }
+.t-clock { text-shadow: var(--clock-shadow); }
+.t-btn-danger  { background: var(--btn-danger);  color: var(--btn-on-color); border-color: transparent; }
+.t-btn-accent  { background: var(--btn-accent);  color: var(--btn-on-color); border-color: transparent; }
+.t-btn-success { background: var(--btn-success); color: var(--btn-on-color); border-color: transparent; }
+.t-btn-neutral { background: var(--btn-neutral); color: var(--btn-neutral-text); border-color: var(--surface-border); }
+.t-dialog {
+  background: var(--dialog-bg);
+  border-color: var(--dialog-border);
+  color: var(--text);
+}
+.t-overlay { background: var(--overlay); }
+.t-warn {
+  background: var(--warn-bg);
+  border-color: var(--warn-border);
+  color: var(--warn-text);
+}
+.t-warn-strong { color: var(--warn-strong); }
+.t-bg { background: var(--bg); }
+
+/* Fasci di luce del "palco": solo nel tema Palco */
+.stage-lights {
+  display: var(--lights);
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+.stage-lights::before,
+.stage-lights::after {
+  content: '';
+  position: absolute;
+  top: -30%;
+  width: 45%;
+  height: 140%;
+  background: linear-gradient(180deg, rgb(196 181 253 / 0.13), transparent 75%);
+  filter: blur(2.5rem);
+  transform-origin: top center;
+  animation: sway 14s ease-in-out infinite alternate;
+}
+.stage-lights::before { left: 5%; transform: rotate(-18deg); }
+.stage-lights::after {
+  right: 5%;
+  transform: rotate(18deg);
+  background: linear-gradient(180deg, rgb(244 114 182 / 0.1), transparent 75%);
+  animation-delay: -7s;
+}
+@keyframes sway {
+  from { rotate: -6deg; opacity: 0.7; }
+  to   { rotate: 6deg;  opacity: 1; }
+}

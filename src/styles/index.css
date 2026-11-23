@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import './themes.css';
 
 @theme {
   --font-sans: 'Nunito Variable', 'Nunito', system-ui, sans-serif;
@@ -34,51 +35,11 @@ body,
 
 body {
   font-family: var(--font-sans);
-  color: #fff;
-  background-color: var(--color-night-950);
-  background-image:
-    radial-gradient(ellipse 60% 55% at 18% -5%, rgb(124 58 237 / 0.5), transparent 70%),
-    radial-gradient(ellipse 55% 50% at 88% 105%, rgb(236 72 153 / 0.28), transparent 70%),
-    radial-gradient(ellipse 40% 35% at 50% 50%, rgb(59 130 246 / 0.12), transparent 70%),
-    linear-gradient(160deg, #0a0a2e 0%, #160f4a 55%, #2a0f4f 100%);
+  color: var(--text);
+  background: var(--bg);
   -webkit-font-smoothing: antialiased;
   user-select: none;
   cursor: default;
-}
-
-/* Fasci di luce del "palco", animati molto lentamente (leggeri per l'N150) */
-.stage-lights {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-  z-index: 0;
-}
-.stage-lights::before,
-.stage-lights::after {
-  content: '';
-  position: absolute;
-  top: -30%;
-  width: 45%;
-  height: 140%;
-  background: linear-gradient(180deg, rgb(196 181 253 / 0.13), transparent 75%);
-  filter: blur(2.5rem);
-  transform-origin: top center;
-  animation: sway 14s ease-in-out infinite alternate;
-}
-.stage-lights::before {
-  left: 5%;
-  transform: rotate(-18deg);
-}
-.stage-lights::after {
-  right: 5%;
-  transform: rotate(18deg);
-  background: linear-gradient(180deg, rgb(244 114 182 / 0.1), transparent 75%);
-  animation-delay: -7s;
-}
-@keyframes sway {
-  from { rotate: -6deg; opacity: 0.7; }
-  to   { rotate: 6deg;  opacity: 1; }
 }
 
 /* ------------------------------------------------------------ focus telecomando */
@@ -93,9 +54,7 @@ body {
 [data-nav]:focus {
   outline: none;
   transform: scale(1.05);
-  box-shadow:
-    0 0 0 0.35rem var(--color-focus),
-    0 0 2.5rem 0.6rem rgb(255 214 10 / 0.45);
+  box-shadow: var(--focus-ring);
   z-index: 1;
 }
 /* Variante per elementi piccoli in barre strette: niente ingrandimento eccessivo */

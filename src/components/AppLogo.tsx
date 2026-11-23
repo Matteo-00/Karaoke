@@ -5,7 +5,7 @@ export function AppLogo({ name, compact = false }: { name: string; compact?: boo
   return (
     <div className="flex items-center gap-4">
       <div
-        className={`flex items-center justify-center rounded-full bg-gradient-to-br from-[#ff4d6a] to-[#7c3aed] shadow-[0_0_1.8rem_rgba(236,72,153,0.55)] ${
+        className={`t-logo flex items-center justify-center rounded-full ${
           compact ? 'size-[3.2rem]' : 'size-[4.5rem]'
         }`}
       >
