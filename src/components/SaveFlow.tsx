@@ -104,6 +104,7 @@ export function SaveFlow({ tempId, defaultName, durationSec, onDone }: Props) {
             value={draft}
             onChange={setDraft}
             placeholder="Nome della canzone"
+            dictateHint="Dì il nome della canzone"
             onOk={() => {
               setName(draft.trim() || defaultName)
               setStep('name')
@@ -133,6 +134,7 @@ export function SaveFlow({ tempId, defaultName, durationSec, onDone }: Props) {
             value={folderDraft}
             onChange={setFolderDraft}
             placeholder="Es. Canzoni di Natale"
+            dictateHint="Dì il nome della cartella"
             okLabel="Crea e salva"
             onOk={async () => {
               const created = await studio.library.createFolder(folderDraft)

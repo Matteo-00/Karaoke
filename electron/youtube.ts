@@ -14,6 +14,8 @@ interface Options {
   preload: string
   url: () => string
   zoom: () => number
+  /** Tasti che avviano la ricerca vocale */
+  voiceKeys: () => string[]
   log: (...args: unknown[]) => void
 }
 
@@ -49,7 +51,7 @@ function chromeUserAgent(): string {
   return `Mozilla/5.0 (${os}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${process.versions.chrome} Safari/537.36`
 }
 
-export function setupYouTube(opts: Options): void {
+export function setupYouTube(opts: Options): { applyZoom: () => void } {
   let view: WebContentsView | null = null
   let loaded = false
 
@@ -97,6 +99,9 @@ export function setupYouTube(opts: Options): void {
       if (input.key === 'Escape' || input.key === 'BrowserBack' || input.key === 'GoBack') {
         event.preventDefault()
         sendToUi({ type: 'key', key: 'back' })
+      } else if (opts.voiceKeys().includes(input.key) || opts.voiceKeys().includes(input.code)) {
+        event.preventDefault()
+        sendToUi({ type: 'key', key: 'voice' })
       } else if (input.key === 'MediaStop') {
         event.preventDefault()
         sendToUi({ type: 'key', key: 'stop' })
@@ -159,6 +164,13 @@ export function setupYouTube(opts: Options): void {
     view?.webContents.send(IPC.ytCommand, cmd)
   })
 
+  ipcMain.handle(IPC.ytSearch, (_e, text: string) => {
+    const v = ensureView()
+    const base = new URL(opts.url())
+    loaded = true
+    v.webContents.loadURL(`${base.origin}/results?search_query=${encodeURIComponent(text.trim())}`)
+  })
+
   ipcMain.handle(IPC.ytGoBack, () => {
     const history = view?.webContents.navigationHistory
     if (history?.canGoBack()) {
@@ -167,6 +179,11 @@ export function setupYouTube(opts: Options): void {
     }
     return false
   })
+
+  return {
+    /** Riapplica lo zoom (cambiato dalle impostazioni) */
+    applyZoom: () => view?.webContents.setZoomFactor(opts.zoom())
+  }
 }
 
 function roundBounds(b: ViewBounds): ViewBounds {

@@ -136,3 +136,7 @@ html[data-window-blurred] [data-nav]:focus {
 .vu-green[data-on]  { background: #22c55e; }
 .vu-yellow[data-on] { background: #facc15; }
 .vu-red[data-on]    { background: #ef4444; }
+
+@keyframes hold-ring {
+  to { stroke-dashoffset: 0; }
+}

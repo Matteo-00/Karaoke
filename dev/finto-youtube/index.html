@@ -76,6 +76,15 @@ function render() {
       }, 5000)
     }
     video.play().catch(() => {})
+  } else if (url.pathname === '/results') {
+    // Risultati di ricerca: la ricerca compare nella barra in alto, come su YouTube
+    const q = url.searchParams.get('search_query') || ''
+    document.querySelector('#search input').value = q
+    document.title = q + ' - YouTube'
+    const words = q.toLowerCase().split(/\s+/).filter((w) => w && w !== 'karaoke')
+    const found = VIDEOS.filter((v) => words.some((w) => v.title.toLowerCase().includes(w)))
+    app.innerHTML = `<h2 style="padding:8px 24px 0;font-weight:500">Risultati per «${q.replace(/</g, '&lt;')}»</h2>
+      <div class="grid">${(found.length ? found : VIDEOS).map(card).join('')}</div>`
   } else {
     document.title = 'YouTube'
     app.innerHTML = `<div class="grid">${VIDEOS.map(card).join('')}</div>`
@@ -88,7 +97,7 @@ document.addEventListener('click', (e) => {
   if (c) navigate('/watch?v=' + c.dataset.id)
   if (e.target.closest('#logo')) navigate('/')
 })
-document.getElementById('search').addEventListener('submit', (e) => { e.preventDefault(); navigate('/') })
+document.getElementById('search').addEventListener('submit', (e) => { e.preventDefault(); navigate('/results?search_query=' + encodeURIComponent(e.target.querySelector('input').value)) })
 window.addEventListener('popstate', render)
 render()
 </script>

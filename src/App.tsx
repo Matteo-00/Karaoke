@@ -5,6 +5,7 @@ import { focusDefault } from './navigation/spatial'
 import { ToastProvider } from './components/Toast'
 import { Home } from './screens/Home'
 import { Recordings } from './screens/Recordings'
+import { Settings } from './screens/Settings'
 import { Dialog } from './components/Dialog'
 import { Button } from './components/Button'
 import { SaveFlow } from './components/SaveFlow'
@@ -12,7 +13,7 @@ import { useToast } from './components/Toast'
 import { YouTubeScreen } from './screens/YouTubeScreen'
 import { useAudioDevices } from './hooks/useAudioDevices'
 import { studio } from './lib/api'
-import { DAY_NIGHT, LIGHT_THEMES, THEMES, type TempRecording, type ThemeId } from '../electron/ipc-types'
+import { DAY_NIGHT, LIGHT_THEMES, THEMES, type StudioSettings, type TempRecording, type ThemeId } from '../electron/ipc-types'
 import { cleanSongTitle, defaultRecordingName, duration } from './lib/text'
 
 /** Tema iniziale; in anteprima si può forzare con ?tema=nome */
@@ -21,24 +22,28 @@ function forcedTheme(): ThemeId | null {
   return forced && THEMES.includes(forced) ? forced : null
 }
 
-export type Screen = 'home' | 'youtube' | 'recordings'
+export type Screen = 'home' | 'youtube' | 'recordings' | 'settings'
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>(() => {
     // Anteprima nel browser: ?schermata=youtube
     const s = new URLSearchParams(location.search).get('schermata')
-    return s === 'youtube' || s === 'recordings' ? s : 'home'
+    return s === 'youtube' || s === 'recordings' || s === 'settings' ? s : 'home'
   })
   const [appName, setAppName] = useState('Studio Karaoke')
   const [recordingCount, setRecordingCount] = useState(0)
   const [countdownSeconds, setCountdownSeconds] = useState(5)
+  const [beep, setBeep] = useState(false)
+  const [trashDays, setTrashDays] = useState(14)
   const [theme, setTheme] = useState<ThemeId>(() => forcedTheme() ?? 'ardesia')
-  const { mixerConnected } = useAudioDevices()
+  const { mixerConnected, outputIsMixer } = useAudioDevices()
 
   useEffect(() => {
     studio.getInfo().then((info) => {
       setAppName(info.appName)
       setCountdownSeconds(info.countdownSeconds)
+      setBeep(info.beep)
+      setTrashDays(info.trashDays)
       if (!forcedTheme()) setTheme(info.theme)
     })
   }, [])
@@ -67,6 +72,29 @@ export default function App() {
     setScreen('home')
   }, [])
 
+  /** Impostazioni nascoste: 3 secondi sul logo in Home (o Ctrl+Shift+S) */
+  const openSettings = useCallback(() => setScreen('settings'), [])
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 's') {
+        e.preventDefault()
+        if (!leaveGuard.current?.()) openSettings()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [openSettings])
+
+  /** Le impostazioni cambiate si applicano subito */
+  const applySettings = useCallback((s: StudioSettings) => {
+    setAppName(s.appName)
+    setCountdownSeconds(s.countdownSeconds)
+    setBeep(s.beep)
+    setTrashDays(s.trashDays)
+    setTheme(s.theme)
+  }, [])
+
   const partner = DAY_NIGHT[theme]
   const toggleDayNight = useCallback(() => {
     if (!partner) return
@@ -90,6 +118,8 @@ export default function App() {
             appName={appName}
             recordingCount={recordingCount}
             mixerConnected={mixerConnected}
+            outputIsMixer={outputIsMixer}
+            onLogoLongPress={openSettings}
             onOpenYouTube={() => setScreen('youtube')}
             onOpenRecordings={() => setScreen('recordings')}
             isLight={LIGHT_THEMES.includes(theme)}
@@ -97,9 +127,11 @@ export default function App() {
           />
         )}
         {screen === 'youtube' && (
-          <YouTubeScreen onHome={forceHome} countdownSeconds={countdownSeconds} setLeaveGuard={setLeaveGuard} />
+          <YouTubeScreen onHome={forceHome} countdownSeconds={countdownSeconds} beep={beep} setLeaveGuard={setLeaveGuard} />
         )}
-        {screen === 'recordings' && <Recordings onHome={forceHome} onOpenYouTube={() => setScreen('youtube')} />}
+        {screen === 'recordings' && <Recordings onHome={forceHome} onOpenYouTube={() => setScreen('youtube')} trashDays={trashDays} />}
+        {screen === 'settings' && <Settings onHome={forceHome} onChanged={applySettings} />}
+
         {screen === 'home' && <RecoverOrphans onDone={() => studio.getRecordingCount().then(setRecordingCount)} />}
       </RemoteKeysProvider>
     </ToastProvider>

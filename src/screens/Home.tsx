@@ -10,6 +10,9 @@ interface Props {
   appName: string
   recordingCount: number
   mixerConnected: boolean | null
+  outputIsMixer?: boolean | null
+  /** Pressione lunga (5 s) sul logo: impostazioni nascoste */
+  onLogoLongPress?: () => void
   onOpenYouTube: () => void
   onOpenRecordings: () => void
   /** Pulsante Giorno/Notte: assente se il tema non ha la coppia */
@@ -22,6 +25,8 @@ export function Home({
   appName,
   recordingCount,
   mixerConnected,
+  outputIsMixer,
+  onLogoLongPress,
   onOpenYouTube,
   onOpenRecordings,
   isLight,
@@ -38,7 +43,7 @@ export function Home({
     <div className="anim-screen relative z-10 flex h-full flex-col px-[3rem] pt-[2rem] pb-[1.75rem]">
       {/* Fascia alta: logo · orologio · esci */}
       <header className="grid grid-cols-[1fr_auto_1fr] items-center">
-        <AppLogo name={appName} />
+        <AppLogo name={appName} onLongPress={onLogoLongPress} />
         <Clock />
         <div className="flex justify-end gap-4">
           {onToggleDayNight && <DayNightButton isLight={isLight} onToggle={onToggleDayNight} />}
@@ -73,7 +78,7 @@ export function Home({
       </main>
 
       <footer className="flex min-h-[5rem] items-center justify-center">
-        <StatusBanner mixerConnected={mixerConnected} />
+        <StatusBanner mixerConnected={mixerConnected} outputIsMixer={outputIsMixer} />
       </footer>
     </div>
   )

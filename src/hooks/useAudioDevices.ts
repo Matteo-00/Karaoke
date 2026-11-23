@@ -10,6 +10,10 @@ export interface AudioDevicesState {
   /** null finché non abbiamo ancora controllato */
   mixerConnected: boolean | null
   mixerInput?: MediaDeviceInfo
+  /** Uscita audio predefinita di Windows (se il nome è disponibile) */
+  defaultOutputLabel: string
+  /** true = l'audio va al mixer; false = va altrove (es. TV); null = non si sa */
+  outputIsMixer: boolean | null
 }
 
 /** Il primo ingresso il cui nome contiene "USB Audio CODEC" o "USB Audio" */
@@ -27,21 +31,26 @@ export function findMixer(inputs: MediaDeviceInfo[], hint?: string): MediaDevice
  * Ricontrolla all'evento `devicechange` e comunque ogni 4 secondi.
  */
 export function useAudioDevices(pollMs = 4000): AudioDevicesState {
-  const [state, setState] = useState<AudioDevicesState>({ inputs: [], outputs: [], mixerConnected: null })
+  const [state, setState] = useState<AudioDevicesState>({ inputs: [], outputs: [], mixerConnected: null, defaultOutputLabel: '', outputIsMixer: null })
 
   const refresh = useCallback(async () => {
     // Anteprima nel browser: ?mixer=1 / ?mixer=0 forza lo stato
     const forced = new URLSearchParams(location.search).get('mixer')
     if (forced !== null && !window.studio) {
-      setState({ inputs: [], outputs: [], mixerConnected: forced === '1' })
+      setState({ inputs: [], outputs: [], mixerConnected: forced === '1', defaultOutputLabel: '', outputIsMixer: null })
       return
     }
     try {
       const all = await navigator.mediaDevices.enumerateDevices()
       const inputs = all.filter((d) => d.kind === 'audioinput' && d.deviceId !== 'default' && d.deviceId !== 'communications')
       const outputs = all.filter((d) => d.kind === 'audiooutput')
-      const mixerInput = findMixer(inputs, await studio.mixerHint())
-      setState({ inputs, outputs, mixerInput, mixerConnected: !!mixerInput })
+      const hint = await studio.mixerHint()
+      const mixerInput = findMixer(inputs, hint)
+      // Chromium chiama l'uscita predefinita "Predefinito - <nome>" / "Default - <nome>"
+      const def = outputs.find((d) => d.deviceId === 'default') ?? outputs[0]
+      const defaultOutputLabel = def?.label.replace(/^(Predefinito|Default)\s*-\s*/i, '') ?? ''
+      const outputIsMixer = defaultOutputLabel ? !!findMixer([def!], hint) : null
+      setState({ inputs, outputs, mixerInput, mixerConnected: !!mixerInput, defaultOutputLabel, outputIsMixer })
     } catch {
       setState((s) => ({ ...s, mixerConnected: false }))
     }

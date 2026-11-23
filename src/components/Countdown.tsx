@@ -5,6 +5,8 @@ import { pushOverlay } from '../lib/overlays'
 
 interface Props {
   seconds: number
+  /** Bip leggero a ogni numero (di default no: finirebbe nella registrazione) */
+  beep?: boolean
   /** Chiamato circa 200 ms prima del "VAI!" (lì partirà la registrazione) */
   onAlmost?: () => void
   /** Chiamato al "VAI!": il video riparte */
@@ -19,7 +21,7 @@ interface Props {
  * Conto alla rovescia a tutto schermo: 5 → 4 → 3 → 2 → 1 → VAI!
  * Numeri enormi (40% dell'altezza) con zoom e dissolvenza.
  */
-export function Countdown({ seconds, onAlmost, onGo, onDone, onCancel }: Props) {
+export function Countdown({ seconds, beep = false, onAlmost, onGo, onDone, onCancel }: Props) {
   const [value, setValue] = useState(seconds) // 0 = "VAI!"
   const [leaving, setLeaving] = useState(false)
   const cbs = useRef({ onAlmost, onGo, onDone })
@@ -38,6 +40,26 @@ export function Countdown({ seconds, onAlmost, onGo, onDone, onCancel }: Props) 
     timers.push(window.setTimeout(() => cbs.current.onDone(), seconds * 1000 + 1100))
     return () => timers.forEach((t) => window.clearTimeout(t))
   }, [seconds])
+
+  // Bip: breve tono locale, più acuto sul "VAI!"
+  useEffect(() => {
+    if (!beep) return
+    try {
+      const ctx = new AudioContext()
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.frequency.value = value === 0 ? 1320 : 880
+      gain.gain.setValueAtTime(0.0001, ctx.currentTime)
+      gain.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.01)
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.15)
+      osc.connect(gain).connect(ctx.destination)
+      osc.start()
+      osc.stop(ctx.currentTime + 0.16)
+      osc.onended = () => ctx.close()
+    } catch {
+      /* audio non disponibile */
+    }
+  }, [value, beep])
 
   useBackHandler(() => {
     if (value > 0) onCancel()

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Circle, Headphones, Loader2, MonitorPlay, Play, Save, Square, Trash2 } from 'lucide-react'
+import { Circle, Headphones, Loader2, Mic, MonitorPlay, Play, Save, Square, Trash2 } from 'lucide-react'
 import type { ViewBounds, YtEvent } from '../../electron/ipc-types'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { RecordingBar, type RecStatus } from '../components/RecordingBar'
@@ -14,6 +14,11 @@ import { studio } from '../lib/api'
 import { cleanSongTitle, defaultRecordingName } from '../lib/text'
 import { useMixerInput } from '../hooks/useMixerInput'
 import { useRecorder } from '../hooks/useRecorder'
+import { VoiceOverlay } from '../components/VoiceOverlay'
+import { VoiceEngine, pickVoiceDevice } from '../lib/voice'
+
+/** Tasti standard che avviano la ricerca vocale (oltre a quello scelto nelle impostazioni) */
+const VOICE_KEYS = ['BrowserSearch', 'LaunchAssistant', 'MicrophoneToggle', 'F24']
 
 interface VideoState {
   videoId: string | null
@@ -33,6 +38,8 @@ type ConfirmReason = 'leave' | 'back' | 'newVideo'
 interface Props {
   onHome: () => void
   countdownSeconds: number
+  /** Bip a ogni numero del conto alla rovescia */
+  beep?: boolean
   /** Registra la funzione che l'app chiama prima di lasciare la schermata (tasto Home) */
   setLeaveGuard: (guard: (() => boolean) | null) => void
 }
@@ -45,7 +52,7 @@ interface Props {
  * 5-4-3-2-1-VAI! (la registrazione parte ~200 ms prima del video) →
  * fine canzone o STOP → nome → cartella → MP3 salvato.
  */
-export function YouTubeScreen({ onHome, countdownSeconds, setLeaveGuard }: Props) {
+export function YouTubeScreen({ onHome, countdownSeconds, beep = false, setLeaveGuard }: Props) {
   const yt = studio.youtube
   const toast = useToast()
   const areaRef = useRef<HTMLDivElement>(null)
@@ -63,6 +70,10 @@ export function YouTubeScreen({ onHome, countdownSeconds, setLeaveGuard }: Props
   const [status, setStatus] = useState<RecStatus>('ready')
   const [save, setSave] = useState<{ tempId: string; durationSec: number; name: string } | null>(null)
   const [confirm, setConfirm] = useState<ConfirmReason | null>(null)
+  /** Ricerca vocale aperta (preroll = partita da sola perché si stava parlando) */
+  const [voice, setVoice] = useState<{ preroll: boolean } | null>(null)
+  const voiceEngine = useRef<VoiceEngine | null>(null)
+  const voiceKeys = useRef<string[]>(VOICE_KEYS)
 
   // Valori sempre aggiornati per i gestori di eventi
   const statusRef = useRef(status)
@@ -70,7 +81,7 @@ export function YouTubeScreen({ onHome, countdownSeconds, setLeaveGuard }: Props
   const videoRef = useRef(video)
   videoRef.current = video
   const busyRef = useRef(false) // dialog di salvataggio o conferma aperti
-  busyRef.current = !!save || !!confirm
+  busyRef.current = !!save || !!confirm || !!voice
   /** Canzone in registrazione */
   const recSong = useRef<{ videoId: string | null; title: string }>({ videoId: null, title: '' })
   /** Cosa fare quando il salvataggio è finito */
@@ -216,9 +227,79 @@ export function YouTubeScreen({ onHome, countdownSeconds, setLeaveGuard }: Props
     return () => window.removeEventListener('keydown', onKey)
   }, [finishRecording])
 
+  // ------------------------------------------------ ricerca vocale
+  /** Si può usare la voce solo quando non si registra e non c'è un altro dialog */
+  const canVoice = () =>
+    !busyRef.current && overlaysRef.current === 0 && (statusRef.current === 'ready' || statusRef.current === 'listening')
+
+  const openVoice = useCallback((preroll = false) => {
+    if (!canVoice()) return
+    // Se una canzone sta suonando la mettiamo in pausa, così si sente la voce
+    if (videoRef.current.playing && statusRef.current !== 'recording') yt.command('pause')
+    setVoice({ preroll })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [yt])
+
+  // Tasto del microfono quando il focus è sull'interfaccia
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (voiceKeys.current.includes(e.key) || voiceKeys.current.includes(e.code)) {
+        e.preventDefault()
+        openVoice()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [openVoice])
+
+  // Ascolto automatico del microfono del telecomando: si tiene premuto il
+  // tasto del microfono, si parla e la ricerca parte da sola
+  useEffect(() => {
+    let alive = true
+    let loudSince = 0
+    let timer: number | undefined
+    ;(async () => {
+      const s = await studio.settings.get()
+      if (s.voiceKey) voiceKeys.current = [...VOICE_KEYS, s.voiceKey]
+      if (!s.voiceAuto) return
+      const dev = await pickVoiceDevice(s.voiceMicLabel, s.mixerLabelHint)
+      // Solo con un microfono separato dal mixer (altrimenti partirebbe cantando)
+      if (!alive || !dev?.separate) return
+      const eng = new VoiceEngine()
+      try {
+        await eng.open(dev.deviceId)
+      } catch {
+        return
+      }
+      if (!alive) return eng.close()
+      voiceEngine.current = eng
+      timer = window.setInterval(() => {
+        // Mai mentre suona una canzone o si registra
+        if (!canVoice() || videoRef.current.playing) {
+          loudSince = 0
+          return
+        }
+        if (eng.level > -38) {
+          loudSince ||= performance.now()
+          if (performance.now() - loudSince > 300) {
+            loudSince = 0
+            openVoice(true)
+          }
+        } else loudSince = 0
+      }, 100)
+    })()
+    return () => {
+      alive = false
+      window.clearInterval(timer)
+      voiceEngine.current?.close()
+      voiceEngine.current = null
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // ------------------------------------------------ eventi da YouTube
-  const handlers = useRef({ goBack, leave, finishRecording, recorder })
-  handlers.current = { goBack, leave, finishRecording, recorder }
+  const handlers = useRef({ goBack, leave, finishRecording, recorder, openVoice })
+  handlers.current = { goBack, leave, finishRecording, recorder, openVoice }
 
   useEffect(() => {
     return yt.onEvent((e: YtEvent) => {
@@ -292,6 +373,7 @@ export function YouTubeScreen({ onHome, countdownSeconds, setLeaveGuard }: Props
           if (e.key === 'back') h.goBack()
           else if (e.key === 'home') h.leave()
           else if (e.key === 'stop' && isRecording()) h.finishRecording()
+          else if (e.key === 'voice') h.openVoice()
           break
       }
     })
@@ -362,6 +444,19 @@ export function YouTubeScreen({ onHome, countdownSeconds, setLeaveGuard }: Props
         title={video.videoId && video.title ? video.title : 'YouTube – Canta'}
         icon={<MonitorPlay className="t-power" />}
         onHome={leave}
+        extra={
+          <button
+            type="button"
+            data-nav=""
+            data-nav-compact=""
+            disabled={status === 'recording' || status === 'paused' || status === 'countdown' || status === 'saving'}
+            onClick={() => openVoice()}
+            className="t-btn-danger flex h-[4rem] shrink-0 items-center gap-2 rounded-[1.2rem] border-2 px-5 text-[1.5rem] font-extrabold"
+          >
+            <Mic className="size-[1.9rem]" strokeWidth={2.6} />
+            Cerca con la voce
+          </button>
+        }
       />
 
       {/* Area di YouTube: qui sopra si posiziona la vista nativa */}
@@ -408,6 +503,7 @@ export function YouTubeScreen({ onHome, countdownSeconds, setLeaveGuard }: Props
       {countingDown && (
         <Countdown
           seconds={countdownSeconds}
+          beep={beep}
           onAlmost={() => {
             // La registrazione parte ~200 ms prima del video: l'inizio della base non si taglia
             recSong.current = { videoId: videoRef.current.videoId, title: videoRef.current.title }
@@ -480,6 +576,23 @@ export function YouTubeScreen({ onHome, countdownSeconds, setLeaveGuard }: Props
         >
           {confirm === 'newVideo' ? 'Hai cambiato canzone mentre registravi.' : `Stai registrando «${cleanSongTitle(recSong.current.title)}».`}
         </Dialog>
+      )}
+
+      {voice && (
+        <VoiceOverlay
+          title="Cerca con la voce"
+          hint="Dì il titolo della canzone, per esempio «Volare karaoke»"
+          confirmLabel="Cerca"
+          engine={voiceEngine.current ?? undefined}
+          preroll={voice.preroll}
+          onClose={() => setVoice(null)}
+          onResult={(text) => {
+            setVoice(null)
+            setStatus('ready')
+            yt.search(text)
+            toast({ tone: 'success', message: `Cerco «${text}» su YouTube` })
+          }}
+        />
       )}
 
       {save && <SaveFlow tempId={save.tempId} defaultName={save.name} durationSec={save.durationSec} onDone={afterSave} />}

@@ -69,12 +69,23 @@ type Modal =
   | { t: 'renameFolder'; folder: string }
   | { t: 'deleteFolder'; folder: string; count: number }
   | { t: 'share'; recs: Recording[] }
+  | { t: 'purge'; rec: Recording; step: 1 | 2 }
+  | { t: 'empty'; step: 1 | 2; count: number }
 
 /** Vista iniziale ricordata durante la sessione */
 let lastView: View = { kind: 'all' }
 
 /** "Le mie registrazioni": cartelle a sinistra, filtri e lista a destra */
-export function Recordings({ onHome, onOpenYouTube }: { onHome: () => void; onOpenYouTube: () => void }) {
+export function Recordings({
+  onHome,
+  onOpenYouTube,
+  trashDays = 14
+}: {
+  onHome: () => void
+  onOpenYouTube: () => void
+  /** Giorni di conservazione delle eliminate */
+  trashDays?: number
+}) {
   const toast = useToast()
   const lib = useLibrary()
   const [view, setViewState] = useState<View>(lastView)
@@ -227,8 +238,15 @@ export function Recordings({ onHome, onOpenYouTube }: { onHome: () => void; onOp
           </div>
 
           {isTrash ? (
-            <div className="t-warn rounded-[1.1rem] border-2 px-5 py-3 text-[1.45rem] font-extrabold">
-              Le registrazioni qui vengono cancellate per sempre dopo 14 giorni.
+            <div className="flex items-center gap-4">
+              <div className="t-warn flex-1 rounded-[1.1rem] border-2 px-5 py-3 text-[1.45rem] font-extrabold">
+                Le registrazioni qui vengono cancellate per sempre dopo {trashDays} giorni.
+              </div>
+              {base.length > 0 && (
+                <Button size="md" variant="ghost" icon={<Trash2 />} onClick={() => setModal({ t: 'empty', step: 1, count: base.length })}>
+                  Svuota tutto
+                </Button>
+              )}
             </div>
           ) : selecting ? (
             <div className="t-surface flex items-center gap-3 rounded-[1.3rem] border-2 px-4 py-3">
@@ -300,7 +318,7 @@ export function Recordings({ onHome, onOpenYouTube }: { onHome: () => void; onOp
                     key={r.id}
                     recording={r}
                     showFolder={isGlobal}
-                    daysLeft={isTrash ? daysLeft(r) : undefined}
+                    daysLeft={isTrash ? daysLeft(r, trashDays) : undefined}
                     selected={selecting ? selected.has(r.id) : undefined}
                     onOpen={() =>
                       selecting ? toggle(r.id) : setModal(isTrash ? { t: 'trashActions', rec: r } : { t: 'actions', rec: r })
@@ -401,6 +419,7 @@ export function Recordings({ onHome, onOpenYouTube }: { onHome: () => void; onOp
             value={draft}
             onChange={setDraft}
             okLabel="Salva"
+            dictateHint="Dì il nuovo nome"
             onOk={async () => {
               setModal(null)
               await run(() => studio.library.rename(modal.rec.id, draft), 'Nome cambiato ✔')
@@ -471,10 +490,78 @@ export function Recordings({ onHome, onOpenYouTube }: { onHome: () => void; onOp
               <Button variant="accent" icon={<Play className="fill-current" />} onClick={() => setModal({ t: 'player', rec: modal.rec })} className="min-w-[20rem]">
                 Ascolta
               </Button>
+              <Button variant="ghost" icon={<Trash2 />} onClick={() => setModal({ t: 'purge', rec: modal.rec, step: 1 })} className="min-w-[20rem]">
+                Elimina per sempre
+              </Button>
             </>
           }
         >
-          Tornerà nella cartella «{modal.rec.originalFolder ?? DEFAULT_FOLDER}».
+          Ripristinandola tornerà nella cartella «{modal.rec.originalFolder ?? DEFAULT_FOLDER}».
+        </Dialog>
+      )}
+
+      {modal?.t === 'purge' && (
+        <Dialog
+          title={modal.step === 1 ? `Cancellare per sempre «${modal.rec.title}»?` : 'Sei proprio sicuro?'}
+          icon={<Trash2 className="text-rec" />}
+          tone="danger"
+          onClose={() => setModal({ t: 'trashActions', rec: modal.rec })}
+          actions={
+            <>
+              <Button
+                variant="danger"
+                icon={<Trash2 />}
+                onClick={async () => {
+                  if (modal.step === 1) return setModal({ ...modal, step: 2 })
+                  setModal(null)
+                  await run(() => studio.library.purge(modal.rec.id), 'Cancellata per sempre')
+                }}
+                className="min-w-[20rem]"
+              >
+                {modal.step === 1 ? 'Sì' : 'Sì, cancella per sempre'}
+              </Button>
+              <Button variant="neutral" icon={<Undo2 />} autoFocusNav onClick={() => setModal({ t: 'trashActions', rec: modal.rec })} className="min-w-[14rem]">
+                No
+              </Button>
+            </>
+          }
+        >
+          {modal.step === 1 ? 'Non si potrà più recuperare.' : 'Dopo non si torna indietro.'}
+        </Dialog>
+      )}
+
+      {modal?.t === 'empty' && (
+        <Dialog
+          title={modal.step === 1 ? `Svuotare le registrazioni eliminate?` : 'Sei proprio sicuro?'}
+          icon={<Trash2 className="text-rec" />}
+          tone="danger"
+          onClose={() => setModal(null)}
+          actions={
+            <>
+              <Button
+                variant="danger"
+                icon={<Trash2 />}
+                onClick={async () => {
+                  if (modal.step === 1) return setModal({ ...modal, step: 2 })
+                  setModal(null)
+                  await run(async () => {
+                    const n = await studio.library.emptyTrash()
+                    toast({ tone: 'success', message: `${songsCount(n)} cancellate per sempre` })
+                  })
+                }}
+                className="min-w-[20rem]"
+              >
+                {modal.step === 1 ? 'Sì' : `Sì, cancella ${songsCount(modal.count)}`}
+              </Button>
+              <Button variant="neutral" icon={<Undo2 />} autoFocusNav onClick={() => setModal(null)} className="min-w-[14rem]">
+                No
+              </Button>
+            </>
+          }
+        >
+          {modal.step === 1
+            ? `${songsCount(modal.count)} verranno cancellate per sempre.`
+            : 'Non si potranno più recuperare.'}
         </Dialog>
       )}
 
@@ -484,6 +571,7 @@ export function Recordings({ onHome, onOpenYouTube }: { onHome: () => void; onOp
             value={filters.search}
             onChange={(v) => setFilters({ ...filters, search: v })}
             placeholder="Scrivi una parte del nome"
+            dictateHint="Dì il nome della canzone da cercare"
             okLabel="Mostra"
             onOk={() => setModal(null)}
           />
@@ -551,6 +639,7 @@ export function Recordings({ onHome, onOpenYouTube }: { onHome: () => void; onOp
             value={draft}
             onChange={setDraft}
             placeholder="Es. Canzoni di Natale"
+            dictateHint="Dì il nome della cartella"
             okLabel={modal.moveRec ? 'Crea e sposta' : 'Crea'}
             onOk={async () => {
               const rec = modal.moveRec

@@ -4,7 +4,18 @@ import { ExitButton } from './ExitButton'
 import { Clock } from './Clock'
 
 /** Barra superiore sottile delle schermate interne: ← Home · titolo · ora · Esci */
-export function ScreenHeader({ title, icon, onHome }: { title: ReactNode; icon?: ReactNode; onHome: () => void }) {
+export function ScreenHeader({
+  title,
+  icon,
+  onHome,
+  extra
+}: {
+  title: ReactNode
+  icon?: ReactNode
+  onHome: () => void
+  /** Pulsanti in più prima dell'orologio (es. ricerca vocale) */
+  extra?: ReactNode
+}) {
   return (
     <header className="t-header flex h-[5.5rem] shrink-0 items-center gap-6 border-b-2 px-[1.5rem]">
       <button
@@ -21,6 +32,7 @@ export function ScreenHeader({ title, icon, onHome }: { title: ReactNode; icon?:
         {icon && <span className="shrink-0 [&>svg]:size-[2.2rem]">{icon}</span>}
         <span className="truncate">{title}</span>
       </div>
+      {extra}
       <Clock compact />
       <ExitButton compact />
     </header>

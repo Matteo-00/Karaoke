@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { IPC, type StudioApi, type YtEvent } from './ipc-types'
+import { IPC, type StudioApi, type VoiceStatus, type YtEvent } from './ipc-types'
 
 /** API sicura esposta all'interfaccia come window.studio */
 const api: StudioApi = {
@@ -27,12 +27,31 @@ const api: StudioApi = {
     setFavorite: (id, fav) => ipcRenderer.invoke(IPC.libFavorite, id, fav),
     remove: (id) => ipcRenderer.invoke(IPC.libRemove, id),
     restore: (id) => ipcRenderer.invoke(IPC.libRestore, id),
+    purge: (id) => ipcRenderer.invoke(IPC.libPurge, id),
+    emptyTrash: () => ipcRenderer.invoke(IPC.libEmptyTrash),
     readAudio: (id) => ipcRenderer.invoke(IPC.libReadAudio, id),
     onChanged: (cb) => {
       const listener = () => cb()
       ipcRenderer.on(IPC.libChanged, listener)
       return () => ipcRenderer.removeListener(IPC.libChanged, listener)
     }
+  },
+  voice: {
+    transcribe: (samples) => ipcRenderer.invoke(IPC.voiceTranscribe, samples),
+    status: () => ipcRenderer.invoke(IPC.voiceStatus),
+    onStatus: (cb) => {
+      const listener = (_e: Electron.IpcRendererEvent, s: VoiceStatus) => cb(s)
+      ipcRenderer.on(IPC.voiceStatusEvent, listener)
+      return () => ipcRenderer.removeListener(IPC.voiceStatusEvent, listener)
+    }
+  },
+  settings: {
+    get: () => ipcRenderer.invoke(IPC.setGet),
+    set: (patch) => ipcRenderer.invoke(IPC.setSet, patch),
+    openDataFolder: () => ipcRenderer.invoke(IPC.setOpenFolder),
+    chooseDataFolder: () => ipcRenderer.invoke(IPC.setChooseFolder),
+    restart: () => ipcRenderer.invoke(IPC.setRestart),
+    logs: () => ipcRenderer.invoke(IPC.setLogs)
   },
   share: {
     startPhone: (ids) => ipcRenderer.invoke(IPC.shareStartPhone, ids),
@@ -51,6 +70,7 @@ const api: StudioApi = {
     hide: (snapshot) => ipcRenderer.invoke(IPC.ytHide, snapshot),
     command: (cmd) => ipcRenderer.invoke(IPC.ytCommand, cmd),
     goBack: () => ipcRenderer.invoke(IPC.ytGoBack),
+    search: (text) => ipcRenderer.invoke(IPC.ytSearch, text),
     onEvent: (cb) => {
       const listener = (_e: Electron.IpcRendererEvent, ev: YtEvent) => cb(ev)
       ipcRenderer.on(IPC.ytEvent, listener)

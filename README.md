@@ -2,7 +2,7 @@
 
 App desktop per Windows 11 che permette di cantare sulle basi di YouTube e registrare voce + base direttamente dal mixer, usando **solo il telecomando**.
 
-> Stato: **fasi 1–5 completate**: YouTube con "Vuoi registrare?", registrazione dal mixer, salvataggio in MP3 con nome e cartella, recupero dopo un crash, "Le mie registrazioni" con cartelle, filtri e player.
+> Stato: **fasi 1–8 completate**: cestino con pulizia automatica, impostazioni nascoste, ricerca vocale e dettatura. In più: YouTube con "Vuoi registrare?", registrazione dal mixer, salvataggio in MP3 con nome e cartella, recupero dopo un crash, "Le mie registrazioni" con cartelle, filtri e player.
 
 Tema **Ardesia**, con il pulsante in Home per passare da notte a giorno:
 
@@ -136,6 +136,24 @@ mixer (main mix: voce + base) ─► ingresso USB di Windows ─► registrazion
 - La TV mostra solo l'immagine; il suo volume può restare a zero. Se il suono esce dalla TV, l'uscita di Windows è finita sull'HDMI: va rimessa su "USB Audio CODEC" (vedi la configurazione di Windows qui sotto). In quel caso la base non arriverebbe al mixer e nella registrazione ci sarebbe solo la voce.
 - Il riascolto da "Le mie registrazioni" esce dalle stesse casse.
 
+### Ricerca vocale e dettatura
+
+- In YouTube: pulsante **🎤 Cerca con la voce**, oppure il **tasto del microfono** del telecomando, oppure (ascolto automatico) basta tenere premuto il microfono del telecomando e parlare.
+- «Ti ascolto…» → «Sto capendo…» → «Ho capito: «volare karaoke»» → la ricerca compare nella barra di YouTube.
+- Tasto **🎤 Detta** nella tastiera a schermo: nome della canzone, rinomina, ricerca, nuove cartelle.
+- Riconoscimento **in locale con Whisper** (`whisper-base`, italiano): il modello (~140 MB) si scarica **una volta sola** da internet pochi secondi dopo il primo avvio, poi funziona anche offline, gratis e senza account. Lo stato è in Impostazioni → Voce.
+- Se il telecomando invia un tasto particolare per il microfono: Impostazioni → Voce → **Imposta tasto** e premilo.
+
+### Impostazioni nascoste
+
+In Home **tieni premuto 3 secondi il logo in alto a sinistra** (OK del telecomando o air mouse: un cerchio si riempie). Sulla tastiera: Ctrl+Shift+S. Nessun PIN.
+
+Contengono: microfono di registrazione con prova del livello, controllo dell'uscita audio, voce, qualità MP3, conto alla rovescia e bip, grandezza di YouTube, nome dell'app, tema, avvio automatico, giorni di conservazione delle eliminate, cartella dei dati, tester dei tasti, versione e registro.
+
+### Registrazioni eliminate
+
+Restano recuperabili per 14 giorni (configurabile). Su ogni canzone: **Ripristina**, **Ascolta**, **Elimina per sempre** (doppia conferma); in alto **Svuota tutto** (doppia conferma). La pulizia automatica gira all'avvio e ogni 6 ore e annota tutto nel registro. Per provarla con una data simulata: `STUDIO_TRASH_NOW=2026-12-15 npm run dev`.
+
 ### Telecomando
 
 | Tasto | Azione |
@@ -166,7 +184,7 @@ Ogni dialog intrappola il focus e parte dalla scelta più sicura (es. "Annulla")
 - [x] 3. Registrazione: VU meter, conto alla rovescia, MediaRecorder, pubblicità
 - [x] 4. Salvataggio: tastiera a schermo, selettore cartelle, MP3, recupero dei file temporanei
 - [x] 5. Le mie registrazioni: cartelle, filtri, player
-- [ ] 6. Registrazioni eliminate (14 giorni)
-- [ ] 7. Impostazioni, tester dei tasti, avvio automatico
-- [ ] 8. Ricerca vocale, copia su chiavetta USB
+- [x] 6. Registrazioni eliminate (14 giorni)
+- [x] 7. Impostazioni, tester dei tasti, avvio automatico
+- [x] 8. Ricerca vocale, copia su chiavetta USB
 - [ ] 9. Installer e guida finale

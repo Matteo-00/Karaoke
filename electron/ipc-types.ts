@@ -14,6 +14,48 @@ export interface AppInfo {
   theme: ThemeId
   /** Secondi del conto alla rovescia prima di registrare */
   countdownSeconds: number
+  /** Bip a ogni numero del conto alla rovescia */
+  beep: boolean
+  /** Giorni di conservazione delle registrazioni eliminate */
+  trashDays: number
+}
+
+/** Tutte le impostazioni (modificabili dalla schermata nascosta) */
+export interface StudioSettings {
+  appName: string
+  autoStart: boolean
+  /** Nome (anche parziale) del dispositivo di ingresso usato per registrare */
+  mixerLabelHint: string
+  /** Microfono per la ricerca vocale (fase 8) */
+  voiceMicLabel: string
+  theme: ThemeId
+  youtubeUrl: string
+  /** 1 = 100% */
+  youtubeZoom: number
+  countdownSeconds: number
+  beep: boolean
+  /** Vuota = Documenti\\Studio Karaoke */
+  dataRoot: string
+  mp3Bitrate: number
+  trashDays: number
+  /** Tasto del telecomando che avvia la ricerca vocale (vuoto = tasti standard) */
+  voiceKey: string
+  /** Avvia la ricerca da sola quando si parla nel microfono del telecomando */
+  voiceAuto: boolean
+}
+
+export interface SettingsApi {
+  get(): Promise<StudioSettings & { version: string; dataRootResolved: string }>
+  /** Salva alcune impostazioni e restituisce quelle aggiornate */
+  set(patch: Partial<StudioSettings>): Promise<StudioSettings>
+  /** Apre la cartella dei dati in Esplora risorse */
+  openDataFolder(): Promise<void>
+  /** Dialog di Windows per scegliere la cartella dei dati */
+  chooseDataFolder(): Promise<string | null>
+  /** Riavvia l'app (serve dopo aver cambiato la cartella dei dati) */
+  restart(): Promise<void>
+  /** Ultime righe del registro */
+  logs(): Promise<string[]>
 }
 
 /** Rettangolo (in pixel CSS della finestra) dove mostrare YouTube */
@@ -47,7 +89,7 @@ export type YtEvent =
       duration: number
     }
   | { type: 'ended'; videoId: string }
-  | { type: 'key'; key: 'back' | 'home' | 'stop' }
+  | { type: 'key'; key: 'back' | 'home' | 'stop' | 'voice' }
   /** YouTube ha preso (true) o perso (false) il focus della tastiera */
   | { type: 'focus'; youtube: boolean }
 
@@ -60,6 +102,8 @@ export interface YouTubeApi {
   command(cmd: YtCommand): Promise<void>
   /** Indietro nella cronologia di YouTube: false se non c'è cronologia */
   goBack(): Promise<boolean>
+  /** Cerca su YouTube (la ricerca compare nella barra di YouTube) */
+  search(text: string): Promise<void>
   /** Registra un ascoltatore degli eventi; restituisce la funzione per rimuoverlo */
   onEvent(cb: (e: YtEvent) => void): () => void
 }
@@ -90,6 +134,8 @@ export interface StudioApi {
   recorder: RecorderApi
   library: LibraryApi
   share: ShareApi
+  settings: SettingsApi
+  voice: VoiceApi
   /** Etichetta (parziale) del dispositivo audio del mixer */
   mixerHint(): Promise<string>
 }
@@ -131,7 +177,19 @@ export const IPC = {
   shareStopPhone: 'share:stop-phone',
   shareDownloaded: 'share:downloaded',
   usbList: 'share:usb-list',
-  usbCopy: 'share:usb-copy'
+  usbCopy: 'share:usb-copy',
+  libPurge: 'lib:purge',
+  libEmptyTrash: 'lib:empty-trash',
+  setGet: 'settings:get',
+  setSet: 'settings:set',
+  setOpenFolder: 'settings:open-folder',
+  setChooseFolder: 'settings:choose-folder',
+  setRestart: 'settings:restart',
+  setLogs: 'settings:logs',
+  voiceTranscribe: 'voice:transcribe',
+  voiceStatus: 'voice:status',
+  voiceStatusEvent: 'voice:status-event',
+  ytSearch: 'yt:search'
 } as const
 
 // ======================================================= registrazioni
@@ -206,6 +264,10 @@ export interface LibraryApi {
   remove(id: string): Promise<void>
   /** Riporta nella cartella originale (Annulla / Ripristina) */
   restore(id: string): Promise<void>
+  /** Cancella per sempre una registrazione eliminata */
+  purge(id: string): Promise<void>
+  /** Svuota le registrazioni eliminate; restituisce quante erano */
+  emptyTrash(): Promise<number>
   /** Contenuto del file MP3, per il player */
   readAudio(id: string): Promise<ArrayBuffer>
   /** Avvisa quando l'archivio cambia */
@@ -238,4 +300,19 @@ export interface ShareApi {
   listUsb(): Promise<UsbDrive[]>
   /** Copia sulla chiavetta; restituisce quante canzoni */
   copyToUsb(ids: string[], drivePath: string): Promise<number>
+}
+
+// ======================================================= voce
+
+export type VoiceStatus =
+  | { state: 'idle' }
+  | { state: 'loading'; progress: number }
+  | { state: 'ready' }
+  | { state: 'error'; message: string }
+
+export interface VoiceApi {
+  /** Trascrive audio mono a 16 kHz (italiano) */
+  transcribe(samples: Float32Array): Promise<string>
+  status(): Promise<VoiceStatus>
+  onStatus(cb: (s: VoiceStatus) => void): () => void
 }

@@ -381,6 +381,55 @@ export class Library {
     })
   }
 
+  // ------------------------------------------------------------ eliminate (cestino)
+  /** Cancella definitivamente una registrazione eliminata */
+  purge(id: string): Promise<void> {
+    return this.run(async () => {
+      const r = this.find(id)
+      if (r.folder !== DELETED_FOLDER) throw new Error('Prima va spostata tra le eliminate')
+      await rm(this.filePath(r), { force: true })
+      this.index.recordings = this.index.recordings.filter((x) => x.id !== id)
+      this.opts.log(`cancellata per sempre «${r.title}»`)
+      await this.persist()
+    })
+  }
+
+  /** Svuota le registrazioni eliminate; restituisce quante erano */
+  emptyTrash(): Promise<number> {
+    return this.run(async () => {
+      const list = this.index.recordings.filter((r) => r.folder === DELETED_FOLDER)
+      for (const r of list) await rm(this.filePath(r), { force: true })
+      this.index.recordings = this.index.recordings.filter((r) => r.folder !== DELETED_FOLDER)
+      this.opts.log(`svuotate le eliminate: ${list.length} cancellate per sempre`)
+      await this.persist()
+      return list.length
+    })
+  }
+
+  /**
+   * Pulizia automatica: cancella per sempre le eliminate da più di `days` giorni.
+   * `now` si può simulare per le prove.
+   */
+  cleanupExpired(days: number, now = Date.now()): Promise<number> {
+    return this.run(async () => {
+      const limit = now - days * 86_400_000
+      const expired = this.index.recordings.filter(
+        (r) => r.folder === DELETED_FOLDER && r.deletedAt && Date.parse(r.deletedAt) <= limit
+      )
+      for (const r of expired) {
+        await rm(this.filePath(r), { force: true })
+        this.opts.log(`pulizia automatica: cancellata «${r.title}» (eliminata il ${r.deletedAt?.slice(0, 10)})`)
+      }
+      if (expired.length) {
+        const ids = new Set(expired.map((r) => r.id))
+        this.index.recordings = this.index.recordings.filter((r) => !ids.has(r.id))
+        await this.persist()
+      }
+      this.opts.log(`pulizia automatica eseguita: ${expired.length} cancellate (conservazione ${days} giorni)`)
+      return expired.length
+    })
+  }
+
   private async moveToTrash(r: Recording): Promise<void> {
     if (r.folder === DELETED_FOLDER) return
     const from = r.folder

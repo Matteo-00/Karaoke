@@ -3,14 +3,16 @@
  * Finestra a schermo intero senza bordi, istanza singola, avvio automatico,
  * riavvio in caso di crash e IPC tipizzato.
  */
-import { app, BrowserWindow, ipcMain, session } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, session, shell } from 'electron'
+import { appendFileSync, existsSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { execFile } from 'node:child_process'
 import { join } from 'node:path'
-import { IPC, THEMES, type AppInfo, type ThemeId } from './ipc-types'
-import { settings } from './settings'
+import { IPC, THEMES, type AppInfo, type StudioSettings, type ThemeId } from './ipc-types'
+import { settings, SETTINGS_DEFAULTS } from './settings'
 import { setupYouTube } from './youtube'
 import { Library, defaultRoot } from './library'
 import { copyToUsb, listUsbDrives, startPhoneShare, stopPhoneShare } from './share'
+import { onVoiceStatus, transcribe, voiceStatus, warmUpVoice } from './voice'
 
 // __dirname è fornito da electron-vite anche nel bundle ESM
 
@@ -35,9 +37,32 @@ const lib = () => libraryReady ?? (libraryReady = startLibrary())
 /** Evita di riavviare all'infinito se il renderer crasha in loop */
 let recentCrashes: number[] = []
 
+/** Registro su file (Impostazioni → Registro): pulizie del cestino, errori, salvataggi */
+const logFile = () => join(app.getPath('userData'), 'registro.log')
+
 function log(...args: unknown[]): void {
-  console.log('[studio]', new Date().toISOString(), ...args)
+  const line = `${new Date().toISOString()} ${args.map((a) => (a instanceof Error ? a.message : typeof a === 'string' ? a : JSON.stringify(a))).join(' ')}`
+  console.log('[studio]', line)
+  try {
+    appendFileSync(logFile(), line + '\n')
+  } catch {
+    /* il registro non deve mai bloccare l'app */
+  }
 }
+
+/** Tiene il registro piccolo (ultime ~2000 righe) */
+function trimLog(): void {
+  try {
+    if (existsSync(logFile()) && statSync(logFile()).size > 256_000) {
+      const lines = readFileSync(logFile(), 'utf8').split('\n')
+      writeFileSync(logFile(), lines.slice(-2000).join('\n'))
+    }
+  } catch {
+    /* ignorato */
+  }
+}
+
+let youtube: { applyZoom: () => void } | null = null
 
 // ---------------------------------------------------------------- istanza singola
 if (!app.requestSingleInstanceLock()) {
@@ -170,8 +195,46 @@ function registerIpc(): void {
     isDev,
     platform: process.platform,
     theme: settings.get('theme'),
-    countdownSeconds: settings.get('countdownSeconds')
+    countdownSeconds: settings.get('countdownSeconds'),
+    beep: settings.get('beep'),
+    trashDays: settings.get('trashDays')
   }))
+
+  // Impostazioni nascoste
+  ipcMain.handle(IPC.setGet, () => ({
+    ...settings.store,
+    version: app.getVersion(),
+    dataRootResolved: settings.get('dataRoot') || defaultRoot()
+  }))
+  ipcMain.handle(IPC.setSet, (_e, patch: Partial<StudioSettings>) => {
+    const clean = sanitizeSettings(patch)
+    for (const [k, v] of Object.entries(clean)) settings.set(k as keyof StudioSettings, v as never)
+    if ('autoStart' in clean) applyAutoStart()
+    if ('youtubeZoom' in clean) youtube?.applyZoom()
+    if ('appName' in clean) mainWindow?.setTitle(settings.get('appName'))
+    log('impostazioni cambiate:', Object.keys(clean).join(', ') || '-')
+    return settings.store
+  })
+  ipcMain.handle(IPC.setOpenFolder, async () => {
+    await shell.openPath(settings.get('dataRoot') || defaultRoot())
+  })
+  ipcMain.handle(IPC.setChooseFolder, async () => {
+    if (!mainWindow) return null
+    const res = await dialog.showOpenDialog(mainWindow, {
+      title: 'Cartella dei dati di Studio Karaoke',
+      properties: ['openDirectory', 'createDirectory'],
+      defaultPath: settings.get('dataRoot') || defaultRoot()
+    })
+    return res.canceled ? null : res.filePaths[0]
+  })
+  ipcMain.handle(IPC.setRestart, () => relaunch())
+  ipcMain.handle(IPC.setLogs, () => {
+    try {
+      return readFileSync(logFile(), 'utf8').trim().split('\n').slice(-60).reverse()
+    } catch {
+      return []
+    }
+  })
 
   ipcMain.handle(IPC.quitApp, () => {
     log('chiusura richiesta dall\'utente')
@@ -234,6 +297,13 @@ function registerIpc(): void {
     log(`copiate ${n} canzoni su ${drive}`)
     return n
   })
+  // Voce (Whisper in locale)
+  ipcMain.handle(IPC.voiceTranscribe, async (_e, samples: Float32Array) => transcribe(samples, log))
+  ipcMain.handle(IPC.voiceStatus, () => voiceStatus())
+  onVoiceStatus((s) => mainWindow?.webContents.send(IPC.voiceStatusEvent, s))
+
+  ipcMain.handle(IPC.libPurge, async (_e, id: string) => (await lib()).purge(id))
+  ipcMain.handle(IPC.libEmptyTrash, async () => (await lib()).emptyTrash())
   ipcMain.handle(IPC.libReadAudio, async (_e, id: string) => {
     const buf = await (await lib()).readAudio(id)
     return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength)
@@ -244,17 +314,24 @@ function registerIpc(): void {
 function onReady(): void {
   applyAutoStart()
   setupPermissions()
+  trimLog()
+  log(`avvio di Studio Karaoke ${app.getVersion()}`)
   registerIpc()
-  lib().catch((err) => log('errore archivio:', err))
+  // Il modello della voce si prepara in sottofondo, dopo l'avvio
+  setTimeout(() => warmUpVoice(log), 15_000)
+  lib()
+    .then(() => scheduleCleanup())
+    .catch((err) => log('errore archivio:', err))
   mainWindow = createWindow()
   mainWindow.on('closed', () => {
     mainWindow = null
   })
-  setupYouTube({
+  youtube = setupYouTube({
     window: () => mainWindow,
     preload: join(__dirname, '../preload/youtube-preload.cjs'),
     // STUDIO_YT_URL permette di provare l'app con una pagina di test (vedi dev/finto-youtube)
     url: () => process.env.STUDIO_YT_URL || settings.get('youtubeUrl'),
+    voiceKeys: () => voiceKeys(),
     zoom: () => settings.get('youtubeZoom'),
     log
   })
@@ -274,6 +351,47 @@ process.on('uncaughtException', (err) => {
   log('errore non gestito:', err)
   if (app.isPackaged) relaunch()
 })
+
+/** Tasti che avviano la ricerca vocale (quelli standard + quello scelto nelle impostazioni) */
+export function voiceKeys(): string[] {
+  const custom = settings.get('voiceKey')
+  return ['BrowserSearch', 'LaunchAssistant', 'MicrophoneToggle', 'F24', ...(custom ? [custom] : [])]
+}
+
+/** Pulizia delle registrazioni eliminate: all'avvio e poi ogni 6 ore */
+function scheduleCleanup(): void {
+  const run = async () => {
+    try {
+      // STUDIO_TRASH_NOW permette di simulare una data futura per le prove
+      const now = process.env.STUDIO_TRASH_NOW ? Date.parse(process.env.STUDIO_TRASH_NOW) : Date.now()
+      await (await lib()).cleanupExpired(settings.get('trashDays'), now)
+    } catch (err) {
+      log('errore pulizia automatica:', err)
+    }
+  }
+  run()
+  setInterval(run, 6 * 60 * 60_000)
+}
+
+/** Accetta solo valori sensati (le impostazioni arrivano dall'interfaccia) */
+function sanitizeSettings(p: Partial<StudioSettings>): Partial<StudioSettings> {
+  const out: Partial<StudioSettings> = {}
+  const num = (v: unknown, min: number, max: number) => typeof v === 'number' && Number.isFinite(v) && v >= min && v <= max
+  if (typeof p.appName === 'string' && p.appName.trim()) out.appName = p.appName.trim().slice(0, 40)
+  if (typeof p.autoStart === 'boolean') out.autoStart = p.autoStart
+  if (typeof p.mixerLabelHint === 'string') out.mixerLabelHint = p.mixerLabelHint.slice(0, 200) || SETTINGS_DEFAULTS.mixerLabelHint
+  if (typeof p.voiceMicLabel === 'string') out.voiceMicLabel = p.voiceMicLabel.slice(0, 200)
+  if (p.theme && THEMES.includes(p.theme)) out.theme = p.theme
+  if (num(p.youtubeZoom, 0.8, 2.5)) out.youtubeZoom = p.youtubeZoom
+  if (num(p.countdownSeconds, 1, 15)) out.countdownSeconds = Math.round(p.countdownSeconds!)
+  if (typeof p.beep === 'boolean') out.beep = p.beep
+  if (typeof p.dataRoot === 'string') out.dataRoot = p.dataRoot
+  if (num(p.mp3Bitrate, 96, 320)) out.mp3Bitrate = Math.round(p.mp3Bitrate!)
+  if (num(p.trashDays, 1, 365)) out.trashDays = Math.round(p.trashDays!)
+  if (typeof p.voiceKey === 'string') out.voiceKey = p.voiceKey.slice(0, 40)
+  if (typeof p.voiceAuto === 'boolean') out.voiceAuto = p.voiceAuto
+  return out
+}
 
 app.on('before-quit', () => {
   void stopPhoneShare()

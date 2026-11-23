@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { ArrowBigUp, Check, Delete, Eraser, Space } from 'lucide-react'
+import { ArrowBigUp, Check, Delete, Eraser, Mic, Space } from 'lucide-react'
+import { VoiceOverlay } from './VoiceOverlay'
 
 const ROWS = [
   ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
@@ -15,14 +16,17 @@ interface Props {
   onOk: () => void
   okLabel?: string
   placeholder?: string
+  /** Mostra il tasto "Detta" (dettatura con la voce); il testo è il suggerimento */
+  dictateHint?: string
 }
 
 /**
  * Tastiera a schermo grande, QWERTY, navigabile con le frecce del telecomando.
  * Funziona anche con una tastiera fisica, se collegata.
  */
-export function OnScreenKeyboard({ value, onChange, onOk, okLabel = 'OK', placeholder }: Props) {
+export function OnScreenKeyboard({ value, onChange, onOk, okLabel = 'OK', placeholder, dictateHint }: Props) {
   const [shift, setShift] = useState(false)
+  const [dictating, setDictating] = useState(false)
   // Prima lettera e dopo uno spazio: maiuscola automatica
   const autoCap = value.length === 0 || value.endsWith(' ')
   const upper = shift !== autoCap
@@ -88,18 +92,19 @@ export function OnScreenKeyboard({ value, onChange, onOk, okLabel = 'OK', placeh
           data-nav=""
           data-nav-compact=""
           onClick={() => setShift((s) => !s)}
-          className={`col-span-2 flex h-[4.3rem] items-center justify-center gap-2 rounded-[0.9rem] border-2 text-[1.5rem] font-extrabold ${
+          aria-label="Maiuscole"
+          className={`${dictateHint ? 'col-span-1' : 'col-span-2'} flex h-[4.3rem] items-center justify-center gap-2 rounded-[0.9rem] border-2 text-[1.5rem] font-extrabold ${
             shift ? 't-btn-accent' : 't-btn-neutral'
           }`}
         >
-          <ArrowBigUp className="size-[1.9rem]" /> Maiusc
+          <ArrowBigUp className="size-[1.9rem]" /> {!dictateHint && 'Maiusc'}
         </button>
         <button
           type="button"
           data-nav=""
           data-nav-compact=""
           onClick={() => onChange(value + ' ')}
-          className="t-btn-neutral col-span-3 flex h-[4.3rem] items-center justify-center gap-2 rounded-[0.9rem] border-2 text-[1.5rem] font-extrabold"
+          className={`t-btn-neutral ${dictateHint ? 'col-span-2' : 'col-span-3'} flex h-[4.3rem] items-center justify-center gap-2 rounded-[0.9rem] border-2 text-[1.5rem] font-extrabold`}
         >
           <Space className="size-[1.9rem]" /> Spazio
         </button>
@@ -124,6 +129,17 @@ export function OnScreenKeyboard({ value, onChange, onOk, okLabel = 'OK', placeh
         >
           <Eraser className="size-[1.9rem]" />
         </button>
+        {dictateHint && (
+          <button
+            type="button"
+            data-nav=""
+            data-nav-compact=""
+            onClick={() => setDictating(true)}
+            className="t-btn-danger col-span-2 flex h-[4.3rem] items-center justify-center gap-2 rounded-[0.9rem] border-2 text-[1.5rem] font-extrabold"
+          >
+            <Mic className="size-[1.9rem]" strokeWidth={2.6} /> Detta
+          </button>
+        )}
         <button
           type="button"
           data-nav=""
@@ -135,6 +151,19 @@ export function OnScreenKeyboard({ value, onChange, onOk, okLabel = 'OK', placeh
           <Check className="size-[2rem]" strokeWidth={3} /> {okLabel}
         </button>
       </div>
+
+      {dictating && dictateHint && (
+        <VoiceOverlay
+          title="Detta con la voce"
+          hint={dictateHint}
+          confirmLabel="Usa questo"
+          onClose={() => setDictating(false)}
+          onResult={(text) => {
+            setDictating(false)
+            onChange(text.charAt(0).toUpperCase() + text.slice(1))
+          }}
+        />
+      )}
     </div>
   )
 }

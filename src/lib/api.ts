@@ -12,7 +12,7 @@ declare global {
  */
 const browserMock: StudioApi = {
   async getInfo() {
-    return { appName: 'Studio Karaoke', version: '0.1.0', isDev: true, platform: 'linux', theme: 'ardesia', countdownSeconds: 5 }
+    return { appName: 'Studio Karaoke', version: '0.1.0', isDev: true, platform: 'linux', theme: 'ardesia', countdownSeconds: 5, beep: false, trashDays: 14 }
   },
   async quitApp() {
     console.info('[anteprima] chiudi app')
@@ -56,11 +56,46 @@ const browserMock: StudioApi = {
     async setFavorite() {},
     async remove() {},
     async restore() {},
+    async purge() {},
+    async emptyTrash() {
+      return 0
+    },
     async readAudio() {
       return new ArrayBuffer(0)
     },
     onChanged() {
       return () => {}
+    }
+  },
+  voice: {
+    async transcribe() {
+      return ''
+    },
+    async status() {
+      return { state: 'idle' as const }
+    },
+    onStatus() {
+      return () => {}
+    }
+  },
+  settings: {
+    async get() {
+      return {
+        appName: 'Studio Karaoke', autoStart: true, mixerLabelHint: 'USB Audio', voiceMicLabel: '', theme: 'ardesia',
+        youtubeUrl: 'https://www.youtube.com', youtubeZoom: 1.35, countdownSeconds: 5, beep: false, dataRoot: '',
+        mp3Bitrate: 192, trashDays: 14, voiceKey: '', voiceAuto: true, version: '0.1.0', dataRootResolved: 'Documenti/Studio Karaoke'
+      }
+    },
+    async set() {
+      return (await browserMock.settings.get())
+    },
+    async openDataFolder() {},
+    async chooseDataFolder() {
+      return null
+    },
+    async restart() {},
+    async logs() {
+      return []
     }
   },
   share: {
@@ -88,6 +123,7 @@ const browserMock: StudioApi = {
     async goBack() {
       return false
     },
+    async search() {},
     onEvent() {
       return () => {}
     }
